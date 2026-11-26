@@ -1,0 +1,80 @@
+[
+  {
+    "id": "01-pergunta",
+    "texto": "Por que tanta gente ainda olha a Lua antes de plantar? Na roça, essa pergunta vem de longe.",
+    "ritmo": "-7%",
+    "tom": "+1Hz",
+    "pausa": 0.45
+  },
+  {
+    "id": "02-terreiro",
+    "texto": "Quando o dia baixa, é tempo de prosa no terreiro. Foi ali, ouvindo os mais velhos, que muita gente aprendeu a marcar o tempo pelo céu.",
+    "ritmo": "-10%",
+    "tom": "-2Hz",
+    "pausa": 0.38
+  },
+  {
+    "id": "03-fases",
+    "texto": "Lua nova, crescente, cheia e minguante. Cada fase carregava uma história. Em algumas famílias, havia uma Lua pra semear e outra pra colher.",
+    "ritmo": "-8%",
+    "tom": "+0Hz",
+    "pausa": 0.42
+  },
+  {
+    "id": "04-ciclo",
+    "texto": "Da Lua nova até a próxima Lua nova, passam cerca de vinte e nove dias e meio. Essa volta dá um ritmo fácil de acompanhar.",
+    "ritmo": "-6%",
+    "tom": "+0Hz",
+    "pausa": 0.5
+  },
+  {
+    "id": "05-plantio",
+    "texto": "Pra escolher o dia do plantio, observe a umidade da terra, a previsão de chuva e a época recomendada pra sua cultura.",
+    "ritmo": "-4%",
+    "tom": "+1Hz",
+    "pausa": 0.35
+  },
+  {
+    "id": "06-observacao",
+    "texto": "A fase da Lua cabe no caderno como observação. O efeito dela sobre a produtividade da lavoura ainda carece de comprovação consistente.",
+    "ritmo": "-5%",
+    "tom": "-1Hz",
+    "pausa": 0.55
+  },
+  {
+    "id": "07-registro",
+    "texto": "Vai semear feijão? Anote a data, a fase da Lua, a variedade e o canteiro. Registre a chuva e o manejo também.",
+    "ritmo": "-4%",
+    "tom": "+2Hz",
+    "pausa": 0.38
+  },
+  {
+    "id": "08-colheita",
+    "texto": "Quando as plantas brotarem, marque o dia. Na colheita, pese o que saiu de cada canteiro e compare com as safras anteriores.",
+    "ritmo": "-4%",
+    "tom": "+0Hz",
+    "pausa": 0.44
+  },
+  {
+    "id": "09-memoria",
+    "texto": "Quem anota sabe o que plantou, quanto colheu e o que vale testar na próxima safra. A memória da roça ganha um caderno.",
+    "ritmo": "-7%",
+    "tom": "-1Hz",
+    "pausa": 0.52
+  },
+  {
+    "id": "10-agrohere",
+    "texto": "Com a AgroIA, você anota e acompanha o calendário lunar. No AgroHere, essas informações ficam no seu diário de campo.",
+    "pronuncia": "Com a Agro I A, você anota e acompanha o calendário lunar. No Agro Híer, essas informações ficam no seu diário de campo.",
+    "ritmo": "-7%",
+    "tom": "+0Hz",
+    "pausa": 0.5
+  },
+  {
+    "id": "11-convite",
+    "texto": "E na sua família, o que a Lua ensinou?",
+    "ritmo": "-11%",
+    "tom": "+1Hz",
+    "pausa": 2.4
+  }
+]
