@@ -1,0 +1,48 @@
+name: Publicar Reel A Lua e o tempo da roça
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/publicar-lua-na-roca.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publicar-lua-na-roca-v1
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      EPISODIO: episodios/lua-na-roca
+      TAG: lua-na-roca-v1
+      VIDEO: A_Lua_e_o_Tempo_da_Roca_Reel.mp4
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Preparar exportação
+        run: |
+          command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+          python -m pip install -r "$EPISODIO/requirements.txt"
+      - name: Montar e verificar o MP4
+        run: |
+          python "$EPISODIO/montar.py" --trabalhadores 3
+          ffmpeg -v error -xerror -i "$EPISODIO/dist/$VIDEO" -f null -
+          ffprobe -v error -show_entries format=duration,size:stream=codec_name,width,height,r_frame_rate -of json "$EPISODIO/dist/$VIDEO"
+      - name: Publicar o MP4
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release download "$TAG" --pattern "$VIDEO" --output /dev/null --clobber --repo "$GITHUB_REPOSITORY"
+            exit 0
+          fi
+          gh release create "$TAG" "$EPISODIO/dist/$VIDEO" \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title 'A Lua e o tempo da roça' --notes-file "$EPISODIO/PUBLICACAO.md"

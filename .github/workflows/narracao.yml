@@ -2,15 +2,9 @@ name: Gerar narração com Thalita
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/narracao.yml
-      - episodios/lua-na-roca/narrar.py
-      - episodios/lua-na-roca/roteiro.json
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: narracao-lua-na-roca
@@ -23,18 +17,15 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Gerar os trechos de voz
         run: |
           python -m pip install 'edge-tts==7.3.1'
           python episodios/lua-na-roca/narrar.py
-      - name: Disponibilizar os trechos gerados
-        run: |
-          git add -- episodios/lua-na-roca/assets/voz/*.mp3
-          git -c user.name='github-actions[bot]' \
-            -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
-            commit --allow-empty -m 'Gerar locução de A Lua e o tempo da roça'
-          git push --force origin HEAD:refs/heads/render/narracao-thalita
+      - uses: actions/upload-artifact@v4
+        with:
+          name: narracao-thalita
+          path: episodios/lua-na-roca/assets/voz/*.mp3
