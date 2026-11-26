@@ -1,0 +1,28 @@
+name: Gravar encerramento revisado do AgroHere
+
+on:
+  push:
+    branches: [edicao/reel-lua-v2]
+    paths: [.github/workflows/voz-reel-lua-v2.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  voz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Gravar as duas falas com Thalita
+        run: |
+          python -m pip install 'edge-tts==7.3.1'
+          voz=episodios/lua-na-roca/assets/voz
+          edge-tts --voice pt-BR-ThalitaMultilingualNeural --rate=-6% --pitch=+1Hz --text 'Com o calendário do Agro Híer, você acompanha as fases da Lua.' --write-media "$voz/10-calendario.mp3"
+          edge-tts --voice pt-BR-ThalitaMultilingualNeural --rate=-7% --pitch=+0Hz --text 'E com o Diário de Campo, você anota tudo o que precisa para acompanhar a produção.' --write-media "$voz/11-diario.mp3"
+          git add "$voz/10-calendario.mp3" "$voz/11-diario.mp3"
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Gravar encerramento revisado com Thalita'
+          git push origin HEAD:refs/heads/render/voz-lua-v2
