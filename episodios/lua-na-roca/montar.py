@@ -17,6 +17,7 @@ EPISODIO = Path(__file__).resolve().parent
 FPS = 30
 TITULO = "A Lua e o tempo da roça"
 ARQUIVO = "A_Lua_e_o_Tempo_da_Roca_Reel.mp4"
+CAPTURAS = EPISODIO / "assets" / "capturas"
 
 
 def carregar(arquivo):
@@ -56,18 +57,34 @@ def linha_do_tempo(origem_voz):
     return planos, falas, voz, quadros
 
 
+def codificacao(previa, destino):
+    return [
+        "-c:v", "libx264", "-preset", "veryfast", "-crf", "22" if previa else "18", "-threads", "2",
+        "-pix_fmt", "yuv420p", "-color_primaries", "bt709", "-color_trc", "bt709",
+        "-colorspace", "bt709", "-video_track_timescale", "30000", str(destino),
+    ]
+
+
 def renderizar_plano(tarefa):
     plano, destino, previa = tarefa
     w, h = (360, 640) if previa else (720, 1280)
     dw, dh = (w, h) if previa else (1080, 1920)
-    comando = [
-        "ffmpeg", "-v", "error", "-y", "-f", "rawvideo",
-        "-pixel_format", "rgb24", "-video_size", f"{w}x{h}", "-framerate", str(FPS), "-i", "pipe:0",
-        "-an", "-filter_threads", "1", "-vf", f"scale={dw}:{dh}:flags=bicubic:out_color_matrix=bt709,setsar=1",
-        "-c:v", "libx264", "-preset", "veryfast", "-crf", "22" if previa else "17", "-threads", "2",
-        "-pix_fmt", "yuv420p", "-color_primaries", "bt709", "-color_trc", "bt709",
-        "-colorspace", "bt709", "-video_track_timescale", "30000", str(destino),
-    ]
+    escala = f"scale={dw}:{dh}:flags=bicubic:out_color_matrix=bt709,setsar=1"
+    comando = ["ffmpeg", "-v", "error", "-y"]
+    if "video" in plano:
+        entrada = CAPTURAS / plano["video"]
+        filtro = (f"setpts=(PTS-STARTPTS)/{plano.get('velocidade', 1)},fps={FPS},"
+                  f"{escala},tpad=stop_mode=clone:stop_duration=8")
+        subprocess.run([
+            *comando, "-ss", str(plano.get("entrada_s", 0)), "-i", str(entrada),
+            "-an", "-filter_threads", "1", "-vf", filtro, "-frames:v", str(plano["frames"]),
+            *codificacao(previa, destino),
+        ], check=True)
+        return destino
+    comando.extend([
+        "-f", "rawvideo", "-pixel_format", "rgb24", "-video_size", f"{w}x{h}", "-framerate", str(FPS),
+        "-i", "pipe:0", "-an", "-filter_threads", "1", "-vf", escala, *codificacao(previa, destino),
+    ])
     with subprocess.Popen(comando, stdin=subprocess.PIPE) as encoder:
         assert encoder.stdin is not None
         for frame in range(plano["frames"]):

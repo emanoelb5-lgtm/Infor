@@ -102,7 +102,7 @@ def trilha(voz, planos, fps):
         imagem = plano["imagem"]
         inicio = plano["inicio"] / fps
         d = plano["frames"] / fps
-        if efeito == "chuva":
+        if efeito in ("chuva", "brotacao"):
             t = tempo(d)
             chuva = (ruido(rng, d, 7600) * 0.0046 + ruido(rng, d, 1750) * 0.004)
             chuva *= np.minimum(1, t / 0.34) * np.minimum(1, (d - t) / 0.25)
@@ -114,13 +114,20 @@ def trilha(voz, planos, fps):
                 batida = np.sin(2 * pi * (2940 + rng.uniform(-420, 360)) * t)
                 envelope = np.sin(pi * t / 0.155)**2 * (0.55 + 0.45 * np.sin(t * 2 * pi * 38)**2)
                 colocar(ambiente, batida * envelope * 0.007, inicio + k * 0.68 + 0.2, rng.uniform(-0.55, 0.55))
-        elif imagem in ("sementes", "balanca", "anotar"):
-            duracao_toque = 0.28 if imagem == "anotar" else 0.13
+        elif imagem in ("sementes", "balanca", "anotar", "caderno", "plantio"):
+            duracao_toque = 0.26 if imagem in ("anotar", "caderno") else 0.13
             t = tempo(duracao_toque)
-            for k in range(3):
+            batidas = {
+                "sementes": (.47, .53, .56, .62, .67, .72, .75),
+                "balanca": (.52, .64, .72),
+                "anotar": (.27, .39, .54),
+                "caderno": (.23, .34, .49, .61),
+                "plantio": (.65,),
+            }
+            for k, ponto in enumerate(batidas[imagem]):
                 tom = np.sin(2 * pi * (380 + k * 82) * t)
                 toque = (tom * 0.005 + ruido(rng, duracao_toque, 2400) * 0.006) * np.exp(-t * 30)
-                colocar(ambiente, toque, inicio + 0.33 + k * 0.13, 0.16)
+                colocar(ambiente, toque, inicio + d * ponto, 0.16)
         elif imagem == "amanhecer":
             t = tempo(0.31)
             envoltoria = np.sin(pi * t / 0.31)**2

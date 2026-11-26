@@ -23,6 +23,7 @@ Os guias foram obtidos de `heygen-com/hyperframes@f00e93479546eca4c7d841859174fe
 ## Créditos das mídias
 
 - Ilustrações originais geradas para o episódio, com ambientação inspirada no nordeste paraense. As pessoas e a propriedade são fictícias.
-- A iluminação da Lua, os movimentos de câmera, os pictogramas e os efeitos de cena são compostos em `visuais.py`. A cena do celular é ilustrativa.
-- Ícone do AgroHere a partir do acervo do aplicativo, usado no encerramento.
+- A iluminação da Lua, os pictogramas e os efeitos de atmosfera são compostos em `visuais.py`.
+- `movimento.py` articula os gestos com uma malha de deformação. Os recortes em `assets/movimento/` acompanham trajetórias de semeadura, escrita e colheita. Grãos, vagens e folhas recebem movimento independente.
+- A Agenda e o Diário de Campo foram gravados no APK oficial AgroHere 1.2.0 em um emulador Android. A anotação mostrada usa dados fictícios. Os trechos originais aproveitados na montagem estão em `assets/capturas/`.
 - Trilha e ambiência originais sintetizadas em `som.py`.

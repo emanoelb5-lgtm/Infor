@@ -63,18 +63,18 @@
     "pausa": 0.52
   },
   {
-    "id": "10-agrohere",
-    "texto": "Com a AgroIA, você anota e acompanha o calendário lunar. E o diário de campo do AgroHere ajuda a organizar o histórico da produção.",
-    "pronuncia": "Com a Agro I A, você anota e acompanha o calendário lunar. E o diário de campo do Agro Híer ajuda a organizar o histórico da produção.",
-    "ritmo": "-7%",
-    "tom": "+0Hz",
-    "pausa": 0.5
+    "id": "10-calendario",
+    "texto": "Com o calendário do AgroHere, você acompanha as fases da Lua.",
+    "pronuncia": "Com o calendário do Agro Híer, você acompanha as fases da Lua.",
+    "ritmo": "-6%",
+    "tom": "+1Hz",
+    "pausa": 0.3
   },
   {
-    "id": "11-convite",
-    "texto": "E na sua família, o que a Lua ensinou?",
-    "ritmo": "-11%",
-    "tom": "+1Hz",
-    "pausa": 2.4
+    "id": "11-diario",
+    "texto": "E com o Diário de Campo, você anota tudo o que precisa para acompanhar a produção.",
+    "ritmo": "-7%",
+    "tom": "+0Hz",
+    "pausa": 1.3
   }
 ]

@@ -1,8 +1,8 @@
 # A Lua e o tempo da roça
 
-O que a Lua ensinou a quem planta? O Reel parte de uma conversa no terreiro para mostrar como a tradição de observar o céu pode virar um hábito de planejamento. Um exemplo com feijão acompanha a semeadura, a chuva, a brotação e a pesagem na colheita.
+O que a Lua ensinou a quem planta? O Reel parte de uma conversa no terreiro para mostrar como a tradição de observar o céu pode virar um hábito de planejamento. Um exemplo com feijão acompanha a semeadura, a chuva, a brotação e a pesagem na colheita. Mãos, grãos, folhas e utensílios têm movimentos próprios em cena. O encerramento navega pela Agenda lunar e pelo Diário de Campo do AgroHere.
 
-[Baixar o Reel em MP4](https://github.com/emanoelb5-lgtm/Infor/releases/download/lua-na-roca-v1/A_Lua_e_o_Tempo_da_Roca_Reel.mp4)
+[Baixar o Reel animado em MP4](https://github.com/emanoelb5-lgtm/Infor/releases/download/lua-na-roca-v2/A_Lua_e_o_Tempo_da_Roca_Reel.mp4)
 
 | Material | Arquivo |
 | --- | --- |
@@ -13,7 +13,7 @@ O que a Lua ensinou a quem planta? O Reel parte de uma conversa no terreiro para
 
 ## Exportar localmente
 
-Requer Python 3.12 e FFmpeg com `libx264`. As artes e os trechos narrados estão em `assets/`.
+Requer Python 3.12 e FFmpeg com `libx264`. As artes, as camadas animadas, as gravações do aplicativo e os trechos narrados estão em `assets/`.
 
 ```sh
 python -m pip install -r episodios/lua-na-roca/requirements.txt

@@ -8,6 +8,8 @@ import random
 import numpy as np
 from PIL import Image, ImageDraw
 
+from movimento import cena_atuada, riscar
+
 ARTES = Path(__file__).resolve().parent / "assets" / "imagens"
 
 
@@ -212,32 +214,6 @@ def pintar_ficha(imagem, efeito, u):
             pincel.line((x - 3, y - 14, x + 14, y + 3), fill=tinta, width=3)
 
 
-@lru_cache(maxsize=1)
-def marca():
-    with Image.open(ARTES / "agrohere.png") as arquivo:
-        imagem = arquivo.convert("RGBA").resize((107, 107), Image.Resampling.LANCZOS)
-    mascara = Image.new("L", imagem.size)
-    ImageDraw.Draw(mascara).rounded_rectangle((0, 0, 106, 106), radius=23, fill=255)
-    imagem.putalpha(mascara)
-    return imagem.rotate(-6, Image.Resampling.BICUBIC, expand=True)
-
-
-def tela_celular(imagem, efeito, u):
-    y = 327
-    if efeito == "marca":
-        icone = marca()
-        alfa = suave(u * 4 + 0.15)
-        if alfa < 1:
-            icone = icone.copy()
-            icone.putalpha(icone.getchannel("A").point(lambda p: round(p * alfa)))
-        inserir(imagem, halo(186, 21), 268, y)
-        inserir(imagem, icone, 268, y)
-        return
-    for i, (dx, dy) in enumerate(((-29, -33), (24, -29), (-32, 24), (21, 28))):
-        avanço = suave((u - i * 0.12) * 5 + 0.22)
-        inserir_lua(imagem, avanço * i / 4, 268 + dx, y + dy, 33, brilho=False)
-
-
 @lru_cache(maxsize=4)
 def atmosfera(w, h):
     y, x = np.mgrid[-1:1:complex(h // 4), -1:1:complex(w // 4)]
@@ -250,8 +226,8 @@ def atmosfera(w, h):
 
 def ambiente(imagem, efeito, t, u, w, h):
     pincel = ImageDraw.Draw(imagem, "RGBA")
-    if efeito in ("chuva", "poeira", "sementes", "lampiao", "luar", "luar-final"):
-        chuva = efeito == "chuva"
+    if efeito in ("chuva", "brotacao", "poeira", "sementes", "lampiao", "luar"):
+        chuva = efeito in ("chuva", "brotacao")
         dia = efeito == "poeira"
         for x, y, s, v in pontos(71 if chuva else 91, 76 if chuva else 23):
             px = (x + sin(t * 0.48 + y * 8) * 0.02 - (0.10 * t if chuva else 0)) % 1 * w
@@ -282,23 +258,20 @@ def quadro(plano, frame, total, fps, w, h):
     if nome == "ceu":
         imagem = pintar_ceu(efeito, u, t, w, h)
     else:
-        base = arte(nome)
-        if nome in ("noite", "caderno", "celular"):
+        base = cena_atuada(nome, efeito, arte(nome), u, t)
+        if nome in ("noite", "caderno"):
             base = base.copy()
             if nome == "noite":
                 inserir_lua(base, 0.43 + 0.012 * sin(t * 0.45), 342 - t, 155 + t * 0.55, 105)
-            elif nome == "caderno":
-                pintar_ficha(base, efeito, u)
             else:
-                tela_celular(base, efeito, u)
+                pintar_ficha(base, efeito, u)
+                riscar(base, efeito, u)
         camera = plano.get("camera", [1, 0.5, 0.5, 1.08, 0.5, 0.5])
         imagem = tela_camera(base, camera, u, w, h)
         ambiente(imagem, efeito, t, u, w, h)
     intensidade = 1.0
     if plano.get("abertura"):
         intensidade = 0.78 + 0.22 * suave(t / 0.44)
-    if efeito == "luar-final":
-        intensidade = suave((total - 1 - frame) / (fps * 0.90))
     if intensidade < 1:
         imagem = Image.blend(Image.new("RGB", (w, h), (4, 10, 15)), imagem, intensidade)
     return imagem
