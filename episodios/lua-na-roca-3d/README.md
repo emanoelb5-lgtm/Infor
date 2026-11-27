@@ -2,9 +2,11 @@
 
 Curta vertical do Infor para o Reels. Dona Luzia e Rafael observam o céu e acompanham o cultivo do feijão, da semente à colheita. O calendário lunar entra como referência de tempo e tradição rural. A decisão de plantar também passa pela umidade da terra, pela previsão de chuva e pela época recomendada para a cultura.
 
-[Baixar a edição 3D](https://github.com/emanoelb5-lgtm/Infor/releases/download/lua-na-roca-3d/A_Lua_e_o_Tempo_da_Roca_Reel.mp4)
+[Baixar a edição 3D refinada](https://github.com/emanoelb5-lgtm/Infor/releases/download/lua-na-roca-3d-refinada/A_Lua_e_o_Tempo_da_Roca_Reel.mp4) · [Edição anterior](https://github.com/emanoelb5-lgtm/Infor/releases/download/lua-na-roca-3d/A_Lua_e_o_Tempo_da_Roca_Reel.mp4)
 
 ## Produção
+
+A edição refinada remodela os rostos de Dona Luzia e Rafael, as roupas e as mãos. Os dedos compartilham a malha da palma e o braço dobra sem peças soltas no cotovelo. Os pontos de pegada ligam a mão ao lápis e à alça do cesto. A semeadura, a queda dos grãos na tigela e a pesagem usam posições de apoio e trajetórias próprias. Doze planos foram renderizados nesta revisão, e os dois diagramas astronômicos vêm da edição anterior.
 
 - O Blender gera 14 planos, com geometria, luzes e materiais próprios. Os braços têm alvos de contato calculados por cinemática inversa. As mãos articulam os dedos. As sementes caem e se acomodam conforme o plano, e as folhas se abrem conforme o caule cresce.
 - O Cycles usa shaders procedurais para o relevo, os veios, a cor e a rugosidade dos objetos. O desenho da Lua projeta o terminador sobre esferas. No diagrama da órbita, há uma esfera separada para representar a fase vista da Terra. A ilustração usa proporções livres.

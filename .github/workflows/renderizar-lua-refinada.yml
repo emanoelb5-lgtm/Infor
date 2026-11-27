@@ -1,0 +1,139 @@
+name: Renderizar a edição refinada de A Lua e o tempo da roça
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/renderizar-lua-refinada.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: lua-na-roca-3d-refinada
+  cancel-in-progress: true
+
+env:
+  EPISODIO: episodios/lua-na-roca-3d
+  TAG: lua-na-roca-3d-refinada
+  TAG_BASE: lua-na-roca-3d
+  COPIA_BRANCH: render/lua-na-roca-3d-refinada
+  VIDEO: A_Lua_e_o_Tempo_da_Roca_Reel.mp4
+  TEMP_TAG: quadros-lua-refinada-${{ github.run_id }}
+  GH_TOKEN: ${{ github.token }}
+  OPENBLAS_NUM_THREADS: '1'
+
+jobs:
+  preparar:
+    if: github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      lotes: ${{ steps.lista.outputs.lotes }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Preparar distribuição do Blender para os executores
+        uses: actions/cache@v4
+        id: blender
+        with:
+          path: ${{ runner.temp }}/infor-blender
+          key: blender-4.3.2-linux-x64
+      - if: steps.blender.outputs.cache-hit != 'true'
+        run: bash "$EPISODIO/preparar-blender.sh" "$RUNNER_TEMP/infor-blender"
+      - name: Preparar os lotes
+        id: lista
+        run: |
+          command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+          python -m pip install numpy
+          lotes="$(python "$EPISODIO/refinar.py" lotes)"
+          if ! gh release view "$TEMP_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$TEMP_TAG" --draft --target "$GITHUB_SHA" --repo "$GITHUB_REPOSITORY" \
+              --title 'Quadros em renderização' --notes 'Arquivos de trabalho da edição refinada.'
+          fi
+          printf 'lotes=%s\n' "$lotes" >> "$GITHUB_OUTPUT"
+
+  renderizar:
+    needs: preparar
+    runs-on: ubuntu-24.04
+    timeout-minutes: 28
+    strategy:
+      fail-fast: false
+      matrix:
+        lote: ${{ fromJSON(needs.preparar.outputs.lotes) }}
+    env:
+      LOTE: ${{ matrix.lote }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/infor-blender
+          key: blender-4.3.2-linux-x64
+      - name: Renderizar o lote em 3D
+        run: |
+          command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+          python -m pip install numpy
+          bash "$EPISODIO/preparar-blender.sh" "$RUNNER_TEMP/infor-blender"
+          python "$EPISODIO/refinar.py" render "$LOTE" \
+            --blender "$RUNNER_TEMP/infor-blender/blender-4.3.2-linux-x64/blender" \
+            --saida "$RUNNER_TEMP/lote-$LOTE.zip" > "$RUNNER_TEMP/plano.log" 2>&1 \
+            || { tail -n 100 "$RUNNER_TEMP/plano.log"; exit 1; }
+          gh release upload "$TEMP_TAG" "$RUNNER_TEMP/lote-$LOTE.zip" --repo "$GITHUB_REPOSITORY" --clobber
+
+  montar:
+    needs: [preparar, renderizar]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Montar e decodificar o vídeo completo
+        run: |
+          command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+          python -m pip install numpy
+          gh release download "$TEMP_TAG" --pattern '*.zip' --dir "$RUNNER_TEMP/quadros" --repo "$GITHUB_REPOSITORY"
+          gh release download "$TAG_BASE" --pattern "$VIDEO" --dir "$RUNNER_TEMP/base" --repo "$GITHUB_REPOSITORY"
+          python "$EPISODIO/refinar.py" montar --pacotes "$RUNNER_TEMP/quadros" \
+            --base "$RUNNER_TEMP/base/$VIDEO" --saida "$RUNNER_TEMP/edicao/$VIDEO"
+          sha256sum "$RUNNER_TEMP/edicao/$VIDEO"
+      - name: Publicar a edição conferida
+        run: |
+          revisado="$RUNNER_TEMP/edicao/$VIDEO"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git fetch --no-tags origin "$COPIA_BRANCH"; then
+            git switch -c "$COPIA_BRANCH" FETCH_HEAD
+            git merge --no-edit --no-ff "$GITHUB_SHA"
+          else
+            git switch -c "$COPIA_BRANCH"
+          fi
+          mkdir -p "$EPISODIO/dist"
+          cp "$revisado" "$EPISODIO/dist/$VIDEO"
+          git add -f "$EPISODIO/dist/$VIDEO"
+          if ! git diff --cached --quiet; then
+            git commit -m 'Guardar a edição 3D refinada'
+          fi
+          git show "HEAD:$EPISODIO/dist/$VIDEO" | cmp -s - "$revisado"
+          git push origin "HEAD:$COPIA_BRANCH"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$revisado" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" "$revisado" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+              --title 'A Lua e o tempo da roça · edição 3D refinada' \
+              --notes 'Novos modelos de Dona Luzia e Rafael, mãos contínuas e novos contatos com o solo, os utensílios e o cesto. Reel vertical de 1min30s com as telas do AgroHere.'
+          fi
+          soma="$(sha256sum "$revisado" | cut -d ' ' -f 1)"
+          publicada="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" \
+            --jq ".assets[] | select(.name == \"$VIDEO\") | .digest")"
+          test "$publicada" = "sha256:$soma"
+          gh release delete "$TEMP_TAG" --repo "$GITHUB_REPOSITORY" --yes

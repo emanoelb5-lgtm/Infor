@@ -322,7 +322,7 @@ def estrelas(y=14, largura=15, altura=12, base=2.0, semente=54):
              (r, r, r), mats[i % 3], detalhe=1)
 
 
-def terreno(y_fundo=12, z=0, noite=False, canteiro=False):
+def terreno(y_fundo=12, z=0, noite=False, canteiro=False, limpar=()):
     terra = material("Argila e matéria orgânica", "38251c" if noite else "4b2b18",
                     "755138" if noite else "aa6645", 25, 0.1)
     seco = material("Fragmento de terra", "52331f", "955e3d", 19, 0.04)
@@ -332,7 +332,7 @@ def terreno(y_fundo=12, z=0, noite=False, canteiro=False):
     ya, yb = (-7, y_fundo)
     vertices = []
     faces = []
-    def nivel(x, y):
+    def perfil_solo(x, y):
         monte = 0.051*sin(3.1*x + 1.1*y) + 0.065*cos(1.7*x - 1.2*y)
         if canteiro:
             monte += 0.105 * (0.5 + 0.5*cos(5.8*x+0.25*sin(y)))**4
@@ -341,15 +341,28 @@ def terreno(y_fundo=12, z=0, noite=False, canteiro=False):
         y = ya + (yb - ya)*j/n
         for i in range(n + 1):
             x = xa + (xb - xa)*i/n
-            vertices.append((x,y,nivel(x,y)+rng.uniform(-0.032,0.032)))
+            vertices.append((x,y,perfil_solo(x,y)+rng.uniform(-0.032,0.032)))
     for j in range(n):
         for i in range(n):
             q = j*(n+1) + i
-            faces.append((q,q+1,q+n+2,q+n+1))
+            faces.extend(((q,q+1,q+n+2),(q,q+n+2,q+n+1)))
     malha("Solo com sulcos" if canteiro else "Terreiro", vertices, faces, terra, suave=True)
+    def nivel(x,y):
+        u=max(0,min(n,(x-xa)*n/(xb-xa)))
+        v=max(0,min(n,(y-ya)*n/(yb-ya)))
+        i,j=min(n-1,int(u)),min(n-1,int(v))
+        a,b=u-i,v-j
+        q=j*(n+1)+i
+        z00,z10,z01,z11=(vertices[k][2] for k in (q,q+1,q+n+1,q+n+2))
+        if b<=a:
+            return (1-a)*z00+(a-b)*z10+b*z11
+        return (1-b)*z00+a*z11+(b-a)*z01
+
     for i in range(85 if canteiro else 54):
         x, y = rng.uniform(-3.5, 3.5), rng.uniform(-4.0, 4.0)
         r = rng.uniform(0.014, 0.078)
+        if any((x-cx)**2+(y-cy)**2 < (raio+r)**2 for cx,cy,raio in limpar):
+            continue
         obj = oval("Torrão", (x,y,nivel(x,y)), (r,r*rng.uniform(0.7,1.7),r*0.55), seco, detalhe=1)
         obj.rotation_euler[2] = rng.uniform(-pi, pi)
     return nivel
@@ -550,13 +563,27 @@ def vagem(pai, local, inclinacao=0):
     raiz = agrupar("Vagem", local, pai)
     raiz.rotation_euler[2] = inclinacao
     mat = material("Vagem", "42733d", "a2ad54", 22, 0.012, 0.53)
-    v = [(0,0,0), (0.12,0.055,0.023), (0.29,0.09,0.045), (0.46,0.075,0.04), (0.58,0.012,-0.008)]
-    fio("Casca", v, 0.046, mat, raiz)
-    claro = material("Nervura da vagem", "96ad68", "b8bd63", 20, 0.011)
-    fio("Costura da vagem", [(x,y,z+0.042) for x,y,z in v], 0.007, claro, raiz)
-    for i in range(3):
-        oval("Grão sob a casca", (0.13+i*0.135,0.068,0.03),(0.073,0.049,0.051),mat,raiz,1)
-    fio("Pedúnculo", [(-0.055,-0.031,0),(0,0,0),(0.056,0.035,0.019)], 0.019, tecido_verde(), raiz)
+    vertices, faces, costura = [], [], []
+    for j in range(27):
+        u=j/26
+        x=.504*(u-.5)
+        y=.086*(sin(pi*u)-.61)+.028*u
+        z=.016*sin(2*pi*u)
+        r=.004+.036*sin(pi*u)**.56*(1+.13*cos(7*pi*u))
+        costura.append((x,y+.93*r,z+r*.38))
+        for i in range(12):
+            a=2*pi*i/12
+            vertices.append((x,y+r*cos(a),z+.83*r*sin(a)))
+    for j in range(26):
+        for i in range(12):
+            a,b=j*12+i,j*12+(i+1)%12
+            faces.append((a,b,b+12,a+12))
+    faces.extend((tuple(reversed(range(12))),tuple(range(26*12,27*12))))
+    malha("Casca contínua da vagem",vertices,faces,mat,raiz,True)
+    claro=material("Nervura da vagem","779754","b0c876",27,.006)
+    fio("Linha da vagem",costura[::2],.0038,claro,raiz)
+    fio("Pedúnculo",[(-.305,-.057,.012),(-.275,-.041,.005),(-.248,-.051,0)],
+        .012,tecido_verde(),raiz)
     return raiz
 
 

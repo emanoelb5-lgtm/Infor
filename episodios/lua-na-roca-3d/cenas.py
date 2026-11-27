@@ -12,7 +12,8 @@ from cenografia import (
     lapis, lua_materia, madeira, malha, mata, material, mesa, oval, pano, raio_sol,
     tablado, tecido_verde, terreno, torno, vagem, vegetacao,
 )
-from personagens import Mao, Pessoa
+from contatos import contornar_haste, levantar_mao, nivel_tigela, orla_saco, trajeto
+from personagens import Braco, Mao, Pessoa, matriz, transformar
 
 
 def limitar(x):
@@ -62,7 +63,7 @@ def noite_aberta():
     iluminacao("noite")
     ceu(True)
     estrelas()
-    terreno(noite=True)
+    nivel = terreno(noite=True,limpar=((-0.60,-0.42,.42),))
     plantas = mata(True)
     tablado(1.0,0.13,5.9,3.9)
     casa(3.80,-2.0,completa=True)
@@ -84,7 +85,7 @@ def noite_aberta():
         canto = .30+.41*alto-.14*fim
         mulher.pose(t,giro=.31+.26*alto,olhar=(canto,-.10-.37*inicio+.04*sin(t*.8)),
                      direita=(.47+.14*alto,-.28,.18+.74*alto-.27*fim),
-                     esquerda=(-.39,-.095,-.21),aperto=(.34,.46-.31*alto),apontar=alto*.91)
+                     esquerda=(-.39,-.095,-.21),aperto=(.34,.46-.31*alto),apontar=alto*.91,apoio=nivel)
         moon.rotation_euler = (0,t*.011,.03)
         for i,p in enumerate(plantas):
             p.rotation_euler.x = .026*sin(t*1.51+i)
@@ -122,9 +123,9 @@ def varanda():
                              (.76,(.49,-.59,.57)),(1,(.44,-.36,.19))])
         ouvir = sin(u*pi)**2
         a.pose(t,giro=.22,olhar=(.30,-.035+.09*sin(t*2.0)),direita=contar,
-               esquerda=(-.27,-.47,.075),aperto=(.49,.31),falar=ouvir*.85)
+               esquerda=(-.35,-.39,.18),aperto=(.49,.31),falar=ouvir*.85)
         b.pose(t+.45,giro=-.28,olhar=(-.44,-.09+.08*sin(t*1.88)),esquerda=(-.41,-.44,.25*ouvir+.09),
-               direita=(.29,-.34,.16),aperto=(.37,.7),inclinacao=.13+.085*ouvir)
+               direita=(.34,-.31,.18),aperto=(.37,.53),inclinacao=.11+.069*ouvir)
         chama.scale.z = .128+.018*sin(10.2*t)+.013*cos(15.31*t)
         chama.rotation_euler.y = .16*sin(t*6.9)
         luz.data.energy = 108+10*sin(t*9.9)+7*cos(t*7.6)
@@ -134,58 +135,63 @@ def varanda():
 
 
 def sementes():
-    iluminacao("varanda",(0,0,1.10))
+    iluminacao("varanda",(0,0,1.16))
     ceu(False)
     casa(4)
     tablado(1.2,-.02,7,5.7)
     mesa((0,0,0),4.0,3.1,.75)
-    caixa_barro((-.05,-.20,.817),1.2)
+    centro=(-.05,-.20,.817)
+    fator=1.20
+    caixa_barro(centro,fator)
     cesto((-1.50,.30,.815),.64)
-    lampiao((1.15,.84,.82),.78)
-    juta = material("Juta do saco","8b7152","cfb58a",115,.023,.86)
-    costura = material("Costura rústica", "9e794f", "c39c6d",52,.009)
-    movel = agrupar("Saco de semente")
-    oval("Volume de tecido", (0,0,-.2),(.44,.29,.47),juta,movel)
-    torno("Boca aberta", [(-.18,.33),(.09,.305),(.26,.335),(.30,.36),
-          (.303,.32),(.15,.267),(-.05,.22)],juta,movel,ondulacao=.065)
-    anel("Costura da boca", .34,.28,costura,movel,.018,.021)
-    fio("Costura do saco",[(.12,-.14,-.58),(.33,-.109,-.42),(.43,-.099,-.14),
-         (.30,-.06,.19)],.01,costura,movel)
-    pele = material("Pele e luz","754331","b87752",31,.018)
-    braco = oval("Antebraço", (0,0,0), (1,1,1),pele)
-    mao = Mao("Mão virando o saco",pele,escala=1.13)
-    cam = camera(4.5)
-    rng = Random(52)
-    legumes = []
-    for i in range(42):
-        quando = .36 + i*.0069 + rng.uniform(-.008,.006)
-        dur = rng.uniform(.15,.185)
-        a, r = rng.uniform(-pi,pi), rng.uniform(.05,.39)
-        fim = Vector((-.065+r*cos(a),-.2+r*sin(a),.954+.17*r+rng.uniform(-.013,.032)))
-        obj = feijao("Grão em queda",(0,0,0),rng.uniform(.065,.088),i)
-        legumes.append((obj,quando,dur,fim,rng.uniform(-pi,pi),rng.uniform(-pi,pi)))
+    lampiao((1.18,.83,.82),.76)
+    saco=agrupar("Saco de feijão")
+    orla_saco(saco)
+    pele=material("Pele de Luzia","865139","bd8768",34,.006,.66)
+    braco=Braco(pele,pano("285752","63867a"),pano("335f56","749085"),None)
+    mao=Mao("Mão que inclina o saco",pele,escala=1.11)
+    cam=camera(4.5)
+
+    def bolsa(u):
+        saco.rotation_euler=(.12*sin(pi*u),.42+2.34*regime(u,.08,.34)-1.82*regime(u,.73,.99),.15)
+        saco.location=mover_tempo(u,[(0,(.73,.13,1.83)),(.29,(.015,-.16,2.13)),
+                                      (.70,(.030,-.17,2.17)),(1,(.77,.15,2.31))])
+
+    rng=Random(43)
+    grade=[]
+    for j in range(-3,4):
+        for i in range(-3,4):
+            x,y=.111*i+.055*(j%2),.097*j
+            if x*x+y*y<.338**2:
+                grade.append((centro[0]+x,centro[1]+y))
+    rng.shuffle(grade)
+    feijoes=[]
+    # A sequência ocupa o fundo da tigela da frente para trás.
+    alvos=sorted(grade[:25],key=lambda p:p[1])
+    for i,(x,y) in enumerate(alvos):
+        instante=.354+.0147*i
+        bolsa(instante)
+        d=(i%3-1)*.047
+        origem=transformar(saco,(d,(-1)**i*.052,.286))
+        tamanho=.048+rng.random()*.006
+        apoio=Vector((x,y,nivel_tigela(x,y,centro,fator)+tamanho*.51))
+        v=feijao("Grão de feijão",origem,tamanho,i)
+        feijoes.append((v,origem,apoio,instante,.090+rng.random()*.009,rng.uniform(-pi,pi)))
+
     def animar(t,u):
-        ang = .62+2.37*regime(u,.10,.34)-1.91*regime(u,.72,.96)
-        movel.rotation_euler = (.19*sin(pi*u),ang,.22)
-        movel.location = mover_tempo(u, [(0,(.76,.17,1.78)),(.27,(.36,.16,2.16)),
-                                          (.69,(.33,.20,2.13)),(1,(.91,.30,2.24))])
-        pulso = movel.location + Vector((.30,.075,-.05))
-        braço(braco,(2.89,.41,2.83),pulso,.114,.125)
-        mao.pose(pulso,(-.89,-.28,.06),.75,giro=.45)
-        for i,(obj,partida,queda,fim,rx,rz) in enumerate(legumes):
-            p = (u-partida)/queda
-            obj.hide_render = p < 0
-            if p < 0:
+        bolsa(u)
+        apoio=transformar(saco,(-.406,-.099,-.14))
+        rumo=Vector((-.67,-.43,-.23))
+        pulso=mao.punho(apoio,rumo,.38)
+        mao.pose(pulso,rumo,.47,giro=.38)
+        braco.pose(Vector((2.91,.60,2.96)),Vector((1.52,.36,2.68)),pulso)
+        for v,origem,chao,instante,d,angulo in feijoes:
+            v.hide_render=u<instante
+            if v.hide_render:
                 continue
-            s = limitar(p)
-            origem = Vector((.21 + .06*sin(i*.78),.13+.09*cos(i*.84),1.85+.06*sin(i)))
-            obj.location = (origem.x+(fim.x-origem.x)*s,origem.y+(fim.y-origem.y)*s,
-                            origem.z+(fim.z-origem.z)*s*s)
-            if p > 1:
-                salto = max(0,1-(p-1)/.58)
-                obj.location.z += .12*salto*abs(sin((p-1)*pi*2.8))
-            obj.rotation_euler = (rx+s*(3.2+i%3),s*2.7,rz+s*5)
-        cam((.10-u*.36,-3.46+.2*u,2.61),(.075,-.065,1.57),2.70,foco=(0,0,1.65))
+            v.location,s=trajeto(u,instante,d,origem,chao,.038)
+            v.rotation_euler=(.77*sin(pi*s),-.54*sin(pi*2*s),angulo+1.42*s)
+        cam((.14-u*.37,-3.57+.20*u,2.58),(.05,-.12,1.57),2.70,foco=(-.04,-.20,1.73))
     return animar
 
 
@@ -268,68 +274,67 @@ def ciclo():
 def terra_mao():
     iluminacao("dia",(0,0,.6))
     ceu(False)
-    plantas = mata()
-    altura = terreno(canteiro=True)
-    rng = Random(4)
-    piel = material("Pele e luz","754331","b87752",31,.018)
-    manga = oval("Manga verde",(0,0,0),(1,1,1),pano("254b48","47796b"))
-    pele_braco = oval("Antebraço",(0,0,0),(1,1,1),piel)
-    mao = Mao("Indicador pressiona a terra",piel,escala=1.23)
-    cam = camera(3.3)
-    terra = material("Terra úmida", "442714", "915535", 20,.053)
-    bolas=[]
-    for i in range(34):
-        r = rng.uniform(.012,.036)
-        obj=oval("Grumo de terra solto",(0,0,0),(r,r*.81,r*.67),terra,detalhe=1)
-        bolas.append((obj,rng.uniform(-.27,.28),rng.uniform(-.20,.23),rng.uniform(0,.22)))
+    plantas=mata()
+    altura=terreno(canteiro=True,limpar=((-.07,-.28,.48),))
+    pele=material("Pele de Luzia","865139","bd8768",34,.006,.66)
+    braco=Braco(pele,pano("285752","63867a"),pano("335f56","749085"),None)
+    mao=Mao("Mão medindo a umidade",pele,escala=1.21)
+    cam=camera(3.8)
+    terra=material("Terra úmida","4b2a19","855838",36,.027)
+    torrões=[]
+    rng=Random(13)
+    for j in range(3):
+        for i in range(4):
+            x,y=-.26+.11*i,-.58+.065*j
+            r=rng.uniform(.014,.022)
+            p=(x,y,altura(x,y)+r*.57)
+            obj=oval("Torrão úmido",p,(r,r*.73,r*.59),terra,detalhe=1)
+            torrões.append((obj,Vector(p),r))
     for i in range(9):
-        x = -1.48+(i%3)*1.45
-        y = .95+i//3*1.18
-        vegetacao((x,y,altura(x,y)),i*19, .37+.07*(i%4),5)
+        x,y=-1.48+(i%3)*1.45,.95+i//3*1.18
+        vegetacao((x,y,altura(x,y)),i*19,.37+.07*(i%4),5)
     def animar(t,u):
-        p = mover_tempo(u,[(0,(.82,-.11,1.20)),(.34,(.17,-.26,.54)),
-                         (.48,(.13,-.23,.34)),(.60,(.13,-.20,.44)),
-                         (.81,(.25,-.03,.95)),(1,(.34,-.01,.84))])
-        toque = regime(u,.15,.49)-regime(u,.66,.81)
-        entao = regime(u,.56,.82)
-        d = Vector((-.67,-.12,-.62+.70*entao))
-        braço(manga,(2.55,.41,1.67),(1.70,.39,1.32),.225,.20)
-        braço(pele_braco,(1.91,.33,1.42),p,.10,.13)
-        mao.pose(p,d,.73*(1-toque)+.14,indicar=.73*toque,giro=-.64)
-        for i,(obj,x,y,z) in enumerate(bolas):
-            v = limitar((u-.47-z*.60)/.36)
-            h = max(0,.51*(1-(v/.66-1)**2))*(.19+z)
-            obj.location = (p.x-.10+x*(.52+v),-.25+y*(.62+v),altura(.1+x,-.25+y)+h)
-            if v>0.01:
-                obj.location.x = .11+x*(.52+v)
-            obj.rotation_euler = (v*6+i,v*3,2*v)
-        plantas[0].rotation_euler.x = .031*sin(t*2.3)
-        cam((-.86+.45*u,-3.68,1.69),(.02,-.02,.54),2.48,foco=(.10,-.15,.39))
+        pulso=mover_tempo(u,[(0,(.86,-.10,1.12)),(.34,(.22,-.22,.47)),
+                             (.46,(.20,-.24,.07)),(.59,(.17,-.18,.10)),
+                             (.82,(.32,-.04,.80)),(1,(.38,0,.90))])
+        toque=regime(u,.25,.46)-regime(u,.61,.83)
+        rumo=Vector((-.78,-.08,-.52+.54*regime(u,.56,.85)))
+        mao.pose(pulso,rumo,.59-.44*toque,indicar=.73*toque,giro=-.38)
+        pulso=levantar_mao(mao,altura,.0015)
+        braco.pose(Vector((2.70,.46,1.72)),Vector((1.53,.21,1.27)),pulso)
+        for i,(p,origem,r) in enumerate(torrões):
+            a=regime(u,.47+i*.002,.62+i*.004)
+            x=origem.x+a*(-.036-.026*(i%3))
+            y=origem.y-a*.064
+            p.location=(x,y,altura(x,y)+r*.60+.055*sin(pi*a))
+            p.rotation_euler=(a*1.5,.5*a,i*.33)
+        plantas[0].rotation_euler.x=.025*sin(t*2.3)
+        cam((-.80+.42*u,-3.42,1.60),(.02,-.10,.51),2.38,foco=(.06,-.27,.25))
     return animar
 
 
 def canteiro():
     ceu(False)
     iluminacao("dia",(0,0,1.08))
-    nivel = terreno(canteiro=True)
+    nivel = terreno(canteiro=True,limpar=((-0.55,.22,.55),))
     mata()
     a = Pessoa("Rafael",(-.5,.32,.08))
     casa(7.2,1.7,completa=True)
-    cesto((-.85,.81,.15),.76,alca=True)
+    cesto((-1.03,.93,nivel(-1.03,.93)+.015),.69,alca=True)
     mocas = []
     for i in range(23):
         x = (-1.75,-.55,.58,1.72)[i%4]
         y = -.52+(i//4)*.72
         if i in (1,5,6):
             continue
-        mocas.append(vegetacao((x,y,nivel(x,y)+.085),i*73+7,.34+.05*(i%5),5))
+        mocas.append(vegetacao((x,y,nivel(x,y)-.003),i*73+7,.34+.05*(i%5),5))
     cam = camera(8)
     def animar(t,u):
         pulso = mover_tempo(u,[(0,(.43,-.26,.02)),(.23,(.47,-.40,.11)),
             (.54,(.50,-.48,.40)),(.81,(.39,-.51,.29)),(1,(.36,-.43,.13))])
-        a.raiz.location = (-.62+.13*u,.37,.09-.095*sin(pi*u))
+        a.raiz.location = (-.62+.13*u,.37,.045-.025*sin(pi*u))
         a.pose(t,giro=.17,olhar=(.18,-.25+.35*suave(u)),inclinacao=.23-.16*regime(u,.35,.87),
-               esquerda=(-.29,-.53,.11),direita=pulso,aperto=(.44,.32),apontar=.14)
+               esquerda=(-.29,-.53,.11),direita=pulso,aperto=(.44,.32),apontar=.14,apoio=nivel)
         for i,p in enumerate(mocas):
             p.rotation_euler.x = .10*sin(t*1.88+i*.63)
             p.rotation_euler.y = .074*sin(t*2.15+i*.74)
@@ -362,40 +367,55 @@ def anotacoes(tipo):
     for i,(palavra,x,y,s) in enumerate(nomes):
         gravar("Anotação",palavra,(x,y,.125),tit if i in (0,2,3,4) else tinta,raiz,tamanho=s)
     caixa_barro((-1.59,.81,.846),.62)
-    for i in range(15):
-        r = Random(25+i)
-        v = feijao("Feijão sobre a mesa",(-1.03+r.uniform(-.44,.38),-1.15+r.uniform(-.20,.15),.874),
-                   r.uniform(.044,.068),i)
-        v.rotation_euler.z = r.uniform(-pi,pi)
+    rng=Random(25)
+    for i in range(9):
+        x=-1.32+(i%5)*.137+rng.uniform(-.008,.008)
+        y=-1.18-(i//5)*.126+rng.uniform(-.009,.009)
+        r=rng.uniform(.043,.057)
+        v=feijao("Feijão sobre a mesa",(x,y,.845+r*.46),r,i)
+        v.rotation_euler.z=rng.uniform(-pi,pi)
     lampiao((1.44,1.07,.848),.67)
-    pele = material("Pele e luz","754331","b87752",31,.018)
-    braco = oval("Antebraço sobre a mesa",(0,0,0),(1,1,1),pele)
-    lap = lapis((0,0,0),raiz)
-    mao = Mao("Mão segurando o lápis",pele,pai=raiz,escala=1.06)
-    traçado = [(0.25,.013,.132),(0.32,-.023,.132),(0.41,.066,.132),
-               (.43,.054,.132),(.56,.066,.132),(.72,.057,.132),(.84,.073,.132)]
-    if tipo in ("dados","memoria"):
-        traçado = [(x,y-.23,.132) for x,y,z in traçado]
-    linha = fio("Grafite surgindo no papel",traçado,.009,tinta,raiz)
-    linha.data.bevel_factor_end = 0
-    cam = camera(8)
+    pele=material("Pele de Luzia","865139","bd8768",34,.006,.66)
+    braco=Braco(pele,pano("285752","63867a"),pano("335f56","749085"),None)
+    lap=lapis((0,0,0),raiz)
+    mao=Mao("Pegada do lápis",pele,pai=raiz,escala=1.06)
+    xy=[(.24,-.041),(.30,-.077),(.37,.011),(.414,.061),(.44,.053)]
+    if tipo!="observacao":
+        xy=[(x,y-.21) for x,y in xy]
+    pontos=[Vector((x,y,.114-.013*(x-.586))) for x,y in xy]
+    curva=[]
+    for i,(b,c) in enumerate(zip(pontos,pontos[1:])):
+        a=pontos[max(0,i-1)]
+        d=pontos[min(len(pontos)-1,i+2)]
+        for j in range(8):
+            t=j/8
+            curva.append(.5*((2*b)+(-a+c)*t+(2*a-5*b+4*c-d)*t*t+(-a+3*b-3*c+d)*t**3))
+    curva.append(pontos[-1])
+    dist=[0.0]
+    for a,b in zip(curva,curva[1:]):
+        dist.append(dist[-1]+(b-a).length)
+    linha=fio("Marca de grafite rente à página",curva,.0033,tinta,raiz,suave=False)
+    linha.data.bevel_factor_mapping_end="SPLINE"
+    cam=camera(8)
     def animar(t,u):
-        marca = regime(u,.13,.71)
-        linha.data.bevel_factor_end = marca
-        x = marca*(len(traçado)-1)
-        i = min(len(traçado)-2,int(x))
-        alvo = Vector(traçado[i]).lerp(Vector(traçado[i+1]),x-i)
-        descanso = regime(u,.72,.99)
-        alvo.z += .058*descanso+.07*(1-regime(u,0,.16))
-        alvo.x += .20*descanso
-        lap.location = alvo
-        inclinacao = Vector((.54,-.36,.69+.10*descanso)).normalized()
-        lap.rotation_euler = inclinacao.to_track_quat("Z","Y").to_euler()
-        pulso = alvo + inclinacao*.43+Vector((.100,-.08,-.04))
-        mao.pose(pulso,(-.62,.30,-.27),.78,giro=.8)
-        v = Vector((cos(.10)*pulso.x+sin(.10)*pulso.y,-sin(.10)*pulso.x+cos(.10)*pulso.y,
-                    .852+pulso.z))
-        braço(braco,(3.26,-1.61,1.36),v,.108,.128)
+        avancar=regime(u,.17,.67)
+        linha.data.bevel_factor_end=avancar
+        alvo_d=avancar*dist[-1]
+        i=next((i for i,v in enumerate(dist[1:]) if alvo_d<=v),len(dist)-2)
+        alvo=curva[i].lerp(curva[i+1],(alvo_d-dist[i])/(dist[i+1]-dist[i]))
+        descanso=regime(u,.69,.94)
+        alvo.z+=.094*descanso+.066*(1-regime(u,0,.17))
+        alvo.x+=.14*descanso
+        lap.location=alvo
+        eixo=Vector((.58,-.33,.74+.11*descanso)).normalized()
+        lap.rotation_euler=eixo.to_track_quat("Z","Y").to_euler()
+        apoio=alvo+eixo*.25
+        rumo=Vector((-.62,.41,-.59))
+        pulso=mao.punho(apoio,rumo,.62)
+        mao.pose(pulso,rumo,.53,giro=.62)
+        m=matriz(raiz)
+        contornar_haste(mao,m@(alvo+eixo*.095),m.to_3x3()@eixo,.043,.735,.007)
+        braco.pose(Vector((3.17,-1.69,1.61)),Vector((2.08,-.93,1.54)),m@pulso)
         cam((.34-.39*u,-2.13+.42*u,4.68),(.01,-.13,.89),3.76,foco=(.18,0,1.0))
     return animar
 
@@ -403,41 +423,50 @@ def anotacoes(tipo):
 def semear():
     iluminacao("dia",(0,0,.65))
     ceu(False)
-    nivel = terreno(canteiro=True)
+    nivel=terreno(canteiro=True,limpar=((0,-.42,.77),))
     mata()
-    vegetacao((-1.75,.62,.15),53,1.04,5)
-    vegetacao((1.58,1.40,.12),61,.95,6)
-    cesto((.85,.12,.14),.75)
-    pele = material("Pele e luz","754331","b87752",31,.018)
-    manga = oval("Manga verde",(0,0,0),(1,1,1),pano("254b48","47796b"))
-    braco = oval("Braço semeando",(0,0,0),(1,1,1),pele)
-    mao = Mao("Mão em concha",pele,escala=1.26)
-    rng=Random(8)
+    vegetacao((-1.75,.62,nivel(-1.75,.62)),53,1.04,5)
+    vegetacao((1.58,1.40,nivel(1.58,1.40)),61,.95,6)
+    cesto((.98,.30,nivel(.98,.30)+.018),.68)
+    pele=material("Pele de Luzia","865139","bd8768",34,.006,.66)
+    braco=Braco(pele,pano("285752","63867a"),pano("335f56","749085"),None)
+    mao=Mao("Mão em concha",pele,escala=1.22)
+    cam=camera(4.0)
+
+    def gesto(u):
+        p=mover_tempo(u,[(0,(.72,.24,1.43)),(.30,(.40,.02,.94)),
+                         (.58,(.55,.09,.88)),(1,(1.02,.39,1.30))])
+        abrir=regime(u,.30,.63)
+        mao.pose(p,(-.90,-.34,.23-.73*abrir),.70-.65*abrir,giro=.21+.97*abrir)
+        return p
+
     grãos=[]
-    for i in range(6):
-        x = -.20+.12*i
-        fim=Vector((x,-.48+rng.uniform(-.093,.24),nivel(x,-.44)+.066))
-        g=feijao("Semente lançada",(0,0,0),.075+rng.uniform(-.014,.01),i)
-        grãos.append((g,fim,rng.uniform(-pi,pi)))
-    cam=camera(3.8)
+    localizacoes=((-0.051,-.097,.189),(.043,-.099,.193),(.003,-.169,.241))
+    gesto(.40)
+    # Solta primeiro o grão mais próximo do chão.
+    locais=sorted(localizacoes,key=lambda xyz:transformar(mao.raiz,xyz).z)
+    for i,((x,y),local) in enumerate(zip(((-.24,-.55),(.076,-.46),(.36,-.50)),locais,strict=True)):
+        r=.051+(i%3)*.003
+        part=.405+.069*i
+        gesto(part)
+        origem=transformar(mao.raiz,local)
+        fim=(x,y,nivel(x,y)+r*.48)
+        g=feijao("Semente lançada",origem,r,i)
+        grãos.append((g,local,origem,fim,part,r))
     def animar(t,u):
-        p = mover_tempo(u,[(0,(.63,.24,1.44)),(.31,(.43,.005,.89)),
-                         (.64,(.65,.12,.92)),(1,(1.09,.39,1.29))])
-        abrir = regime(u,.31,.55)
-        mao.pose(p,(-.87,-.36,-.17-.24*abrir),.89-.69*abrir,giro=-.19-.37*abrir)
-        braço(manga,(2.65,.77,1.91),(1.65,.58,1.39),.18,.191)
-        braço(braco,(1.93,.62,1.50),p,.114,.122)
-        for i,(g,fim,a) in enumerate(grãos):
-            v = (u-.39-i*.034)/.17
-            g.hide_render = v < 0
-            origem = p+Vector((-.27-.023*i,-.128,-.137))
-            s=limitar(v)
-            g.location = origem.lerp(fim,s)
-            g.location.z = origem.z+(fim.z-origem.z)*s*s
-            if v > 1:
-                g.location.z += .035*max(0,1-(v-1)/.5)*abs(sin((v-1)*pi*4))
-            g.rotation_euler=(a+s*5.3,s*1.6,a-s*3.8)
-        cam((-.43+.25*u,-3.48,1.80),(.14,-.09,.60),2.65,foco=(.02,-.10,.39))
+        p=gesto(u)
+        braco.pose(Vector((2.65,.77,1.91)),Vector((1.69,.54,1.44)),p)
+        for i,(g,local,origem,fim,part,r) in enumerate(grãos):
+            if u<part:
+                g.location=transformar(mao.raiz,local)
+                q=0
+            else:
+                g.location,q=trajeto(u,part,.123,origem,fim,.022)
+            g.rotation_euler=(.65*sin(pi*q),.95*sin(pi*q),i*.61+q*3.7)
+            # As seed tilts and bounces, leave the elliptical shell above the terrain.
+            floor=nivel(g.location.x,g.location.y)
+            g.location.z=max(g.location.z,floor+r*(.46+.33*sin(pi*q)))
+        cam((-.43+.25*u,-3.48,1.80),(.17,-.09,.63),2.63,foco=(.02,-.15,.48))
     return animar
 
 
@@ -450,20 +479,20 @@ def broto():
     for i in range(6):
         x, y = -1.7+.68*i, 1.5+i*.135
         vegetacao((x,y,nivel(x,y)),68+i*12,.54+(i%2)*.3,7)
-    inicio = nivel(0,0)+.052
+    inicio = nivel(0,-.13)+.013
     g=agrupar("Planta do feijão",(0,-.13,inicio))
     mat = tecido_verde()
-    caule = fio("Caule contínuo", [(0,0,.08*i) for i in range(8)],.058,mat,g)
+    caule = fio("Caule contínuo", [(0,0,.08*i) for i in range(8)],.039,mat,g)
     pontos_caule = caule.data.splines[0].bezier_points
     for i,ponto in enumerate(pontos_caule):
         ponto.radius = 1.02-.052*i
-    feijao("Casca deixada no solo",(.094,-.15,inicio-.020),.095,0)
+    feijao("Casca deixada no solo",(.175,-.22,nivel(.175,-.22)+.033),.073,0)
     cot = []
     folha_mat = material("Folhas do primeiro par","356539","a5b751",19,.02,.46)
     verde = material("Cotilédones espessos","54763d","aab65c",21,.016,.55)
     for lado in (-1,1):
         u = agrupar("Articulação do cotilédone",pai=g)
-        vo = oval("Cotilédone",(0,.14,.025),(.110,.183,.055),verde,u)
+        oval("Cotilédone",(0,.115,.016),(.079,.143,.040),verde,u)
         v = agrupar("Folha em abertura",pai=g)
         folha("Primeira folha verdadeira",folha_mat,v,.72,.226,.26)
         fio("Nervura principal",[(0,0,0),(0,.20,.141),(0,.41,.152),(0,.68,-.037)],
@@ -477,15 +506,15 @@ def broto():
         pontos=[]
         for j in range(8):
             p = j/7
-            pontos.append((.08*sin(p*pi)+dobra*p**2,.037*sin(p*2.6)+.028*sin(t*2.1)*p,
-                           altura*p-dobra*.61*p**3))
+            pontos.append((.08*sin(p*pi)+dobra*p**2*alonga,.037*sin(p*2.6)+.028*sin(t*2.1)*p,
+                           altura*p-dobra*.52*p**3*alonga))
         for ponto,pos in zip(pontos_caule,pontos,strict=True):
             ponto.co = pos
         for i,(lado,c,f) in enumerate(cot):
-            c.location=pontos[6]
+            c.location=Vector(pontos[6])+Vector((lado*.021,0,0))
             c.rotation_euler=(.80-(.79*regime(u,.28,.64))+.16*sin(t*2),.16*lado,lado*1.37)
             c.scale=(.05+.95*regime(u,.10+i*.04,.49+i*.04),)*3
-            f.location=pontos[7]
+            f.location=Vector(pontos[7])+Vector((lado*.015,0,.021))
             f.rotation_euler=(1.17-(1.13*regime(u,.56+i*.04,.965))+.10*sin(t*2.3),
                               lado*.25,lado*1.59-.14)
             f.scale=(.002+.998*regime(u,.35+i*.025,.88+i*.04),)*3
@@ -526,34 +555,50 @@ def balanca():
     bandeja = agrupar("Prato da balança",(0,.066,1.78))
     torno("Prato do peso",[(0,.15),(0,.47),(.028,.66),(.071,.72),(.106,.719),
           (.108,.68),(.065,.58),(.047,.12)],verde,bandeja,ondulacao=.013)
-    pele=material("Pele e luz","754331","b87752",31,.018)
-    braco=oval("Braço que deposita a colheita",(0,0,0),(1,1,1),pele)
-    mão=Mao("Mão larga as vagens",pele,escala=1.03)
-    rng=Random(72)
-    urdidas=[]
-    for i in range(14):
-        fim=(rng.uniform(-.37,.37),rng.uniform(-.32,.28),.104+i*.008)
-        v=vagem(bandeja,fim,rng.uniform(-pi,pi))
-        urdidas.append((v,Vector(fim),v.rotation_euler.z))
+    pele=material("Pele de Luzia","865139","bd8768",34,.006,.66)
+    braco=Braco(pele,pano("285752","63867a"),pano("335f56","749085"),None)
+    mao=Mao("Mão que coloca as vagens",pele,escala=1.08)
     cam=camera(7)
+
+    def gesto(u):
+        punho=mover_tempo(u,[(0,(1.34,.33,2.83)),(.29,(.58,.16,2.65)),
+                            (.58,(.54,.19,2.60)),(1,(1.57,.41,2.88))])
+        abre=regime(u,.40,.62)
+        mao.pose(punho,(-.77,-.33,-.29),.66-.61*abre,giro=.65+.21*abre)
+        return punho
+
+    disposicoes=(
+        ((-.095,-.29,.085),.08),((.079,-.135,.087),.14),((-.123,.025,.088),-.12),
+        ((.066,.192,.087),.10),((-.095,.35,.092),-.13),
+    )
+    def na_mao(i):
+        corpo=transformar(mao.raiz,(0,-.113,.176))
+        coluna=(i%3-1)*.098
+        return corpo+Vector((i%2*.04,coluna,(i//3)*.094))
+
+    vagens=[]
+    for i,(fim,angulo) in enumerate(disposicoes):
+        instante=.413+.043*i
+        gesto(instante)
+        origem=na_mao(i)
+        v=vagem(bandeja,fim,angulo)
+        vagens.append((v,Vector(fim),origem,instante,angulo))
     def animar(t,u):
-        p=mover_tempo(u,[(0,(1.20,.34,2.80)),(.27,(.49,.28,2.68)),
-                         (.57,(.57,.23,2.45)),(1,(1.57,.32,2.83))])
-        braço(braco,(2.93,.53,3.37),p,.107,.117)
-        braço_abre=regime(u,.37,.64)
-        mão.pose(p,(-.75,-.32,-.34-.2*braço_abre),.81-.63*braço_abre,giro=.53)
-        peso=regime(u,.50,.71)
-        mola=sin((u-.50)*46)*max(0,1-(u-.50)*3.1) if u>.50 else 0
-        ponteiro.rotation_euler.y=-1.27+(peso+.32*mola)*1.58
-        bandeja.location.z=1.78-.056*peso+.01*mola
-        for i,(v,fim,a) in enumerate(urdidas):
-            s=limitar((u-.31-i*.018)/.17)
-            v.hide_render = u < .24+i*.018
-            captura=Vector((p.x-.39,.13+(i%3)*.052,p.z-bandeja.location.z-.18-(i%4)*.035))
-            v.location = captura.lerp(fim,s)
-            v.location.z = captura.z+(fim.z-captura.z)*s*s
-            v.rotation_euler=(sin(s*pi)*(i%4),sin(s*pi*.9)*.39,a+(1-s)*2.0)
-        cam((.68-.91*u,-4.53+.32*u,2.63),(.04,0,1.78),3.11,foco=(0,0,1.89))
+        p=gesto(u)
+        braco.pose(Vector((2.92,.49,3.33)),Vector((1.76,.43,2.98)),p)
+        peso=sum(regime(u,v[3]+.115,v[3]+.164) for v in vagens)/len(vagens)
+        mola=sin((u-.529)*61)*max(0,1-(u-.529)*3.8) if u>.529 else 0
+        ponteiro.rotation_euler.y=-1.27+(peso+.13*mola)*1.58
+        bandeja.location.z=1.78-.052*peso+.007*mola
+        for i,(v,fim,origem,instante,a) in enumerate(vagens):
+            if u<instante:
+                mundo=na_mao(i)
+                q=0
+            else:
+                mundo,q=trajeto(u,instante,.117,origem,bandeja.location+fim,.018)
+            v.location=mundo-bandeja.location
+            v.rotation_euler=(.40*sin(pi*q),.25*sin(pi*q),.20+(a-.20)*q)
+        cam((.68-.91*u,-4.53+.32*u,2.63),(.04,0,1.84),3.06,foco=(0,0,1.94))
     return animar
 
 
@@ -564,26 +609,35 @@ def memoria():
     terreno(z=-.23)
     casa(3.2,-.4,completa=True)
     tablado(-2.2,.02,6,5.9)
-    mesa((0,-.18,.12),2.69,1.51,.81)
-    lume,luz=lampiao((.95,.03,1.0),.80)
-    caderno((-.41,-.43,1.00),.61,.77)
-    saco=cesto((.23,-.06,1.17),.73,alca=True)
-    for i in range(7):
-        vagem(saco,(-.34+.065*i,-.13+.036*i,.36+(i%3)*.039),.26+i*.38)
-    a=Pessoa("Dona Luzia",(-.34,.88,.123),velha=True)
-    cam=camera(8)
+    mesa((0,-.23,.12),2.73,1.40,.81)
+    lume,luz=lampiao((1.12,.36,.997),.70)
+    caderno((-.46,-.40,.997),.58,.74)
+    saco=cesto((.47,.19,1.32),.69,alca=True)
+    posicoes=(((-.10,-.22,.34),.24),((.055,-.07,.359),-.13),((-.085,.107,.365),.18),
+              ((.06,.26,.35),-.11),((-.011,.01,.44),1.28))
+    for loc,giro in posicoes:
+        vagem(saco,loc,giro)
+    a=Pessoa("Dona Luzia",(-.44,.95,.095),velha=True)
+    cam=camera(7)
     def animar(t,u):
-        baixar = regime(u,.19,.62)
-        repouso = regime(u,.65,.92)
-        a.raiz.location = (-.58+.23*regime(u,0,.27),1.21-.36*regime(u,0,.32),.12)
-        a.pose(t,giro=-.09,olhar=(.11,-.19+.19*repouso),inclinacao=.16*baixar-.10*repouso,
-               direita=(.41,-.57,.48-.29*baixar+.23*repouso),esquerda=(-.33,-.55,.17+.08*baixar),
-               aperto=(.47,.78-.49*repouso),passo=(.92*u+.015) if u<.26 else 0)
-        saco.location=(.09+.11*baixar,-.16+.062*baixar,1.37-.371*baixar)
-        saco.rotation_euler=(.14*(1-baixar)+.023*sin(t*3),-.09*(1-baixar),.16-.11*baixar)
-        lume.scale.z = .128+.020*sin(t*8.3)+.012*cos(t*14.1)
-        luz.data.energy = 129+8*cos(t*8.1)
-        cam((.68-.92*u,-4.79+.39*u,2.07+.14*u),(-.03,.13,1.69),3.54,foco=(-.2,.24,1.55))
+        baixar=regime(u,.18,.60)
+        soltar=regime(u,.62,.91)
+        chegar=regime(u,0,.29)
+        a.raiz.location=(-.396+.136*chegar,.897-.179*chegar,.095)
+        saco.location=(.37+.22*baixar,.28-.186*baixar,.998+.316*(1-baixar))
+        saco.rotation_euler=(.070*(1-baixar),-.051*(1-baixar),.12*(1-baixar))
+        pegada=transformar(saco,(0,-.010,.953))
+        alvo=pegada+Vector((-.12*soltar,.23*soltar,.158*sin(pi*soltar/2)))
+        a.pose(t,giro=-.07,olhar=(.18,.06+.20*baixar-.27*soltar),
+            inclinacao=.12*baixar-.087*soltar,esquerda=(-.35,-.27,.06+.20*baixar),
+            aperto=(.24,.61-.53*soltar),passo=(.74*chegar+.02) if u<.27 else 0,
+            contatos=(None,(alvo,(-.79,-.55,-.18+.28*soltar))),apoio=lambda x,y:.096)
+        if soltar<.74:
+            mao=a.bracos[1][2]
+            contornar_haste(mao,pegada+Vector((-.134,0,0)),(1,0,0),.034,.268,.004)
+        lume.scale.z=.124+.018*sin(t*8.3)+.011*cos(t*14.1)
+        luz.data.energy=116+8*cos(t*8.1)
+        cam((.63-.87*u,-4.76+.39*u,2.07+.14*u),(-.02,.13,1.69),3.55,foco=(.06,.25,1.64))
     return animar
 
 

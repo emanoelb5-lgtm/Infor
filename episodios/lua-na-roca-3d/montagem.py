@@ -87,10 +87,10 @@ def foley(voz, planos):
             colocar(mix,faixa,inicio+d*.14,.24)
         if nome in ("sementes","terra","semear","balanca","memoria"):
             instantes, freq, volume = {
-                "sementes": (tuple(.534+i*.0068 for i in range(42)), 710, .014),
-                "semear": (tuple(.563+i*.034 for i in range(6)), 275, .012),
+                "sementes": (tuple(.448+i*.0147 for i in range(25)), 710, .014),
+                "semear": (tuple(.528+i*.069 for i in range(3)), 275, .012),
                 "terra": ((.48,.58,.70), 210, .009),
-                "balanca": ((.49,.52,.58,.64,.68), 645, .015),
+                "balanca": (tuple(.530+i*.043 for i in range(5)), 645, .015),
                 "memoria": ((.61,.73), 187, .014),
             }[nome]
             for f in instantes:
