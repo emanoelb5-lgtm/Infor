@@ -89,10 +89,13 @@ def chegada_folha(f,t,u,nivel,centro_x=.06,centro_y=-.35):
     f.rotation_euler=(.63*sin(g*pi*6)*alto,.73*sin(g*pi*3.5)*alto,-.71+1.2*alto-.39*sin(4*pi*g)*alto)
 
 
-def abertura():
+def abertura(elenco=None):
     nivel,arvores,bananas,cacau=bosque()
-    d=Pessoa("Dona Luzia",(-.65,.45,.057),velha=True,escala=.95)
-    r=Pessoa("Rafael",(.63,.47,.052),escala=.93)
+    if elenco:
+        posar_elenco = elenco(nivel, retorno=False)
+    else:
+        d=Pessoa("Dona Luzia",(-.65,.45,.057),velha=True,escala=.95)
+        r=Pessoa("Rafael",(.63,.47,.052),escala=.93)
     folha=folha_seca((0,0,0),escala=1.0,curva=.72,cor=0)
     folha2=folha_seca((0,0,0),escala=.70,curva=.86,cor=2,detalhe=False)
     cam=camera(9)
@@ -101,11 +104,14 @@ def abertura():
         g=regime(u,.19,.85)
         folha2.location=(.99-.47*g,.93-.79*g,nivel(.52,.14)+.041+2.67*(1-g))
         folha2.rotation_euler=(.69*sin(14*g)*(1-g),-.6*sin(9*g)*(1-g),.58+1.9*g)
-        gesto=regime(u,.23,.77)
-        d.pose(t,giro=.25,olhar=(.36,.03+.27*gesto),direita=(.43,-.27,.23-.10*gesto),
-               esquerda=(-.33,-.15,.10),rumos=(None,(.20,-.64,-.71)),aperto=(.39,.12),apoio=nivel)
-        r.pose(t+.39,giro=-.26,olhar=(-.20,.11+.24*gesto),esquerda=(-.34,-.21,.31-.13*gesto),
-               direita=(.37,-.14,.058),rumos=((-.50,-.65,-.49),None),aperto=(.29,.34),apoio=nivel)
+        if elenco:
+            posar_elenco(t,u)
+        else:
+            gesto=regime(u,.23,.77)
+            d.pose(t,giro=.25,olhar=(.36,.03+.27*gesto),direita=(.43,-.27,.23-.10*gesto),
+                   esquerda=(-.33,-.15,.10),rumos=(None,(.20,-.64,-.71)),aperto=(.39,.12),apoio=nivel)
+            r.pose(t+.39,giro=-.26,olhar=(-.20,.11+.24*gesto),esquerda=(-.34,-.21,.31-.13*gesto),
+                   direita=(.37,-.14,.058),rumos=((-.50,-.65,-.49),None),aperto=(.29,.34),apoio=nivel)
         vento(arvores,t,.029)
         vento(bananas,t,.052)
         vento(cacau,t,.039)
@@ -114,7 +120,7 @@ def abertura():
     return animar
 
 
-def cobertura():
+def cobertura(elenco_mao=None):
     iluminacao("dia",(-.07,-.13,.75))
     ceu(False)
     nivel=terreno(limpar=((.19,-.20,.45),))
@@ -132,9 +138,12 @@ def cobertura():
         fio("Raminho",[ (x,y,z),(x+.086,y+.116,z+.018),(x+.13,y+.126,z+.033)],
             .007,galho,ramo)
         folha_seca((x+.107,y+.11,z+.028),escala=.54,angulo=a+.4,cor=int((x+.5)*12),curva=.44,detalhe=False).parent=ramo
-    pele=material("Pele de Luzia","865139","bd8768",34,.006,.66)
-    mao=Mao("Mão de Dona Luzia",pele,escala=1.05)
-    braco=Braco(pele,pano("285752","63867a"),pano("335f56","749085"),None)
+    if elenco_mao:
+        mao,braco=elenco_mao("female",1.05)
+    else:
+        pele=material("Pele de Luzia","865139","bd8768",34,.006,.66)
+        mao=Mao("Mão de Dona Luzia",pele,escala=1.05)
+        braco=Braco(pele,pano("285752","63867a"),pano("335f56","749085"),None)
     cam=camera(6.35)
     def animar(t,u):
         baixa=regime(u,.15,.66)
@@ -156,7 +165,7 @@ def cobertura():
     return animar
 
 
-def plantio():
+def plantio(elenco_mao=None):
     iluminacao("dia",(-.05,-.06,.82))
     ceu(False)
     nivel=terreno(limpar=((-.16,-.23,.41),))
@@ -170,9 +179,12 @@ def plantio():
         o=folha_seca((x,y,nivel(x,y)+.027),escala=.47+.05*i,
                      angulo=a,cor=i,curva=.39,detalhe=True)
         folhagem.append((o,Vector((x,y,0)),Vector(((-1)**i*(.19+.026*i),.03*(i%3-1),0)),a))
-    pele=material("Pele de Rafael","815039","c1885c",34,.006,.66)
-    mao=Mao("Rafael com a semente",pele,escala=1.23)
-    braco=Braco(pele,pano("966735","c39758"),pano("ad7545","daa766"),None)
+    if elenco_mao:
+        mao,braco=elenco_mao("male",1.23)
+    else:
+        pele=material("Pele de Rafael","815039","c1885c",34,.006,.66)
+        mao=Mao("Rafael com a semente",pele,escala=1.23)
+        braco=Braco(pele,pano("966735","c39758"),pano("ad7545","daa766"),None)
     s=semente_andiroba((0,0,0),.38)
     cam=camera(6.26)
 
@@ -211,10 +223,13 @@ def plantio():
     return animar
 
 
-def retorno():
+def retorno(elenco=None):
     nivel,arvores,bananas,cacau=bosque()
-    d=Pessoa("Dona Luzia",(-.68,.88,.061),velha=True,escala=.95)
-    r=Pessoa("Rafael",(.57,.89,.050),escala=.93)
+    if elenco:
+        posar_elenco = elenco(nivel, retorno=True)
+    else:
+        d=Pessoa("Dona Luzia",(-.68,.88,.061),velha=True,escala=.95)
+        r=Pessoa("Rafael",(.57,.89,.050),escala=.93)
     x,y=-.04,-.52
     broto=agrupar("Muda plantada", (x,y,nivel(x,y)))
     folha_mat=material("Folhas jovens de andiroba","3f6a43","9bad60",21,.012,.49)
@@ -237,11 +252,14 @@ def retorno():
     cam=camera(8)
     def animar(t,u):
         chegada_folha(f,t,u,nivel,.32,-.76)
-        g=regime(u,.18,.77)
-        d.pose(t,giro=.23,olhar=(.32,.10+.22*g),direita=(.42,-.39,.19-.082*g),
-               esquerda=(-.31,-.23,.068),aperto=(.44,.14),rumos=(None,(.36,-.59,-.77)),apoio=nivel)
-        r.pose(t+.18,giro=-.18,olhar=(-.22,.13+.19*g),esquerda=(-.39,-.35,.24-.16*g),
-               direita=(.35,-.18,.131),aperto=(.23,.37),rumos=((-.60,-.37,-.63),None),apoio=nivel)
+        if elenco:
+            posar_elenco(t,u)
+        else:
+            g=regime(u,.18,.77)
+            d.pose(t,giro=.23,olhar=(.32,.10+.22*g),direita=(.42,-.39,.19-.082*g),
+                   esquerda=(-.31,-.23,.068),aperto=(.44,.14),rumos=(None,(.36,-.59,-.77)),apoio=nivel)
+            r.pose(t+.18,giro=-.18,olhar=(-.22,.13+.19*g),esquerda=(-.39,-.35,.24-.16*g),
+                   direita=(.35,-.18,.131),aperto=(.23,.37),rumos=((-.60,-.37,-.63),None),apoio=nivel)
         vento(arvores,t,.028)
         vento(bananas,t,.048)
         vento(cacau,t,.030)

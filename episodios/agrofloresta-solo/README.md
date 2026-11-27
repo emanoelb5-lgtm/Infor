@@ -18,3 +18,15 @@ A montagem e os comandos de renderização são compartilhados com o [episódio 
 - Proteção da superfície e conservação da umidade. [Manejo da água e do solo · Embrapa](https://www.infoteca.cnptia.embrapa.br/infoteca/bitstream/doc/1148733/1/MEDEIROS-COSTA-PEREIRA-SABOYA-SANTIAGO-BLACKBURN.pdf)
 - Decomposição da serapilheira e conteúdo de nutrientes. [Pesquisa Florestal Brasileira · Embrapa](https://pfb.sede.embrapa.br/pfb/pt_BR/article/view/2072)
 - Germinação, semente e primeiras folhas de *Carapa guianensis*. [Sementes e plântulas de andiroba · Acta Amazonica / INPA](https://acta.inpa.gov.br/direcionador_link.php?numero=32-4&pdf=v32n4a10.pdf&sequencia=168)
+
+## Edição com o elenco Infor
+
+A [segunda edição do curta](https://github.com/emanoelb5-lgtm/Infor/releases/tag/agrofloresta-da-folha-ao-solo-elenco)
+usa Seu João e Dona Maria como elenco visual. A caminhada entra na abertura e no
+retorno à muda. Os closes de mãos usam as cores e os tecidos dos figurinos novos
+e os pontos de contato da edição original. A montagem verifica a identidade da
+locução, das legendas e dos quatro planos que foram reaproveitados, incluindo o
+Diário de Campo.
+
+O arquivo Blender é reutilizável sem dependências externas. Veja as instruções
+em [personagens/elenco](../../personagens/elenco).
