@@ -81,8 +81,8 @@ def noite_aberta():
         inicio = regime(u,0.07,0.30)
         alto = regime(u,.31,.64)
         fim = regime(u,.78,1)
-        canto = .26*alto - .14*fim
-        mulher.pose(t,giro=-.13,olhar=(canto,.33*inicio+.09*sin(t*.8)),
+        canto = .30+.41*alto-.14*fim
+        mulher.pose(t,giro=.31+.26*alto,olhar=(canto,-.10-.37*inicio+.04*sin(t*.8)),
                      direita=(.47+.14*alto,-.28,.18+.74*alto-.27*fim),
                      esquerda=(-.39,-.095,-.21),aperto=(.34,.46-.31*alto),apontar=alto*.91)
         moon.rotation_euler = (0,t*.011,.03)

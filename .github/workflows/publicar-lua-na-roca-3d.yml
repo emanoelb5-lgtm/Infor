@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: lua-na-roca-3d
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   EPISODIO: episodios/lua-na-roca-3d
@@ -34,6 +34,22 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
+      - name: Restaurar a distribuição do Blender
+        id: blender
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/infor-blender
+          key: blender-4.3.2-linux-x64
+      - name: Obter a distribuição do Blender
+        if: steps.blender.outputs.cache-hit != 'true'
+        run: bash "$EPISODIO/preparar-blender.sh" "$RUNNER_TEMP/infor-blender"
+      - name: Compartilhar o Blender com os executores dos planos
+        if: steps.blender.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        continue-on-error: true
+        with:
+          path: ${{ runner.temp }}/infor-blender
+          key: blender-4.3.2-linux-x64
       - name: Preparar a decupagem
         id: planos
         env:
@@ -63,19 +79,20 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
+      - name: Restaurar a distribuição do Blender
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/infor-blender
+          key: blender-4.3.2-linux-x64
       - name: Preparar Blender e FFmpeg
         run: |
           command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
           python -m pip install numpy
-          curl --fail --silent --show-error --location --retry 3 \
-            https://download.blender.org/release/Blender4.3/blender-4.3.2-linux-x64.tar.xz \
-            --output "$RUNNER_TEMP/blender.tar.xz"
-          tar -xf "$RUNNER_TEMP/blender.tar.xz" -C "$RUNNER_TEMP"
-          "$RUNNER_TEMP/blender-4.3.2-linux-x64/blender" --version
+          bash "$EPISODIO/preparar-blender.sh" "$RUNNER_TEMP/infor-blender"
       - name: Renderizar o plano
         run: |
           python "$EPISODIO/montagem.py" render "$PLANO" --threads 4 --amostras 13 --denoise \
-            --blender "$RUNNER_TEMP/blender-4.3.2-linux-x64/blender" \
+            --blender "$RUNNER_TEMP/infor-blender/blender-4.3.2-linux-x64/blender" \
             > "$RUNNER_TEMP/plano.log" 2>&1 || { tail -n 100 "$RUNNER_TEMP/plano.log"; exit 1; }
           tail -n 11 "$RUNNER_TEMP/plano.log"
       - name: Guardar o plano no rascunho da montagem
@@ -115,9 +132,15 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git checkout -B render/lua-na-roca-3d
+          if git fetch --no-tags origin render/lua-na-roca-3d; then
+            git checkout -B render/lua-na-roca-3d FETCH_HEAD
+          else
+            git checkout -b render/lua-na-roca-3d
+          fi
           git add -f "$EPISODIO/dist/$VIDEO"
-          git commit -m 'Guardar o MP4 verificado da edição 3D'
-          git push --force-with-lease origin HEAD:render/lua-na-roca-3d
+          if ! git diff --cached --quiet; then
+            git commit -m 'Guardar o MP4 verificado da edição 3D'
+          fi
+          git push origin HEAD:render/lua-na-roca-3d
       - name: Remover os clipes temporários
         run: gh release delete "$TEMP_TAG" --repo "$GITHUB_REPOSITORY" --yes
