@@ -2,11 +2,6 @@ name: Renderizar A Lua e o tempo da roça em 3D
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/publicar-lua-na-roca-3d.yml
-      - episodios/lua-na-roca-3d/**
 
 permissions:
   contents: write

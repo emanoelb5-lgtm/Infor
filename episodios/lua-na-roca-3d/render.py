@@ -41,9 +41,9 @@ def renderizar(args):
     if args.previa:
         quadros = [(f"previa-{int(fracao*100):03d}",fracao) for fracao in args.previa]
     else:
-        quadros = [(f"{i:04d}", i/(args.quadros - 1)) for i in range(args.quadros)]
+        quadros = [(f"{i:04d}", i/(args.quadros - 1)) for i in range(args.primeiro, args.ultimo)]
     for i,(nome,u) in enumerate(quadros):
-        scene.frame_set(i+1)
+        scene.frame_set(args.primeiro+i+1)
         cena(u*args.duracao, u)
         scene.render.filepath = str((args.pasta / (nome + ".jpg")).resolve())
         bpy.ops.render.render(write_still=True)
@@ -54,6 +54,8 @@ def argumentos():
     p.add_argument("--plano", required=True, choices=sorted(PLANOS))
     p.add_argument("--pasta", required=True, type=Path)
     p.add_argument("--quadros", type=int, default=2)
+    p.add_argument("--primeiro", type=int, default=0)
+    p.add_argument("--ultimo", type=int)
     p.add_argument("--duracao", type=float, default=5)
     p.add_argument("--fps", type=int, default=18)
     p.add_argument("--largura", type=int, default=540)
@@ -63,8 +65,12 @@ def argumentos():
     p.add_argument("--previa", type=float, nargs="+")
     p.add_argument("--denoise", action="store_true")
     args = p.parse_args(sys.argv[sys.argv.index("--") + 1:])
+    if args.ultimo is None:
+        args.ultimo = args.quadros
     if args.quadros < 2 or args.duracao <= 0:
         p.error("Indique pelo menos dois quadros e uma duração positiva.")
+    if not 0 <= args.primeiro < args.ultimo <= args.quadros:
+        p.error("A faixa de quadros precisa caber no plano.")
     return args
 
 

@@ -1,0 +1,114 @@
+name: Revisar letreiros de A Lua e o tempo da roça em 3D
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/revisar-letreiros-lua-3d.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: lua-na-roca-3d
+  cancel-in-progress: false
+
+env:
+  EPISODIO: episodios/lua-na-roca-3d
+  TAG: lua-na-roca-3d
+  VIDEO: A_Lua_e_o_Tempo_da_Roca_Reel.mp4
+  OPENBLAS_NUM_THREADS: '1'
+  GH_TOKEN: ${{ github.token }}
+  TEMP_TAG: letreiros-lua-${{ github.run_id }}
+
+jobs:
+  preparar:
+    if: github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    outputs:
+      partes: ${{ steps.lista.outputs.partes }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Dividir os dois planos em partes
+        id: lista
+        run: |
+          command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+          python -m pip install numpy
+          partes="$(python "$EPISODIO/retocar.py" tarefas)"
+          if ! gh release view "$TEMP_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$TEMP_TAG" --draft --target "$GITHUB_SHA" --repo "$GITHUB_REPOSITORY" \
+              --title 'Quadros em revisão' --notes 'Quadros temporários desta montagem.'
+          fi
+          printf 'partes=%s\n' "$partes" >> "$GITHUB_OUTPUT"
+
+  renderizar:
+    needs: preparar
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.preparar.outputs.partes) }}
+    env:
+      PLANO: ${{ matrix.plano }}
+      PRIMEIRO: ${{ matrix.inicio }}
+      ULTIMO: ${{ matrix.fim }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/infor-blender
+          key: blender-4.3.2-linux-x64
+      - name: Renderizar a faixa de quadros
+        run: |
+          command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+          python -m pip install numpy
+          bash "$EPISODIO/preparar-blender.sh" "$RUNNER_TEMP/infor-blender"
+          python "$EPISODIO/retocar.py" parte "$PLANO" "$PRIMEIRO" "$ULTIMO" \
+            --blender "$RUNNER_TEMP/infor-blender/blender-4.3.2-linux-x64/blender" \
+            --saida "$RUNNER_TEMP/$PLANO-$PRIMEIRO.zip" > "$RUNNER_TEMP/quadros.log" 2>&1 \
+            || { tail -n 90 "$RUNNER_TEMP/quadros.log"; exit 1; }
+          gh release upload "$TEMP_TAG" "$RUNNER_TEMP/$PLANO-$PRIMEIRO.zip" --repo "$GITHUB_REPOSITORY" --clobber
+
+  montar:
+    needs: [preparar, renderizar]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Atualizar os dois planos na montagem
+        run: |
+          command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+          python -m pip install numpy
+          gh release download "$TAG" --pattern "$VIDEO" --dir "$RUNNER_TEMP/base" --repo "$GITHUB_REPOSITORY"
+          gh release download "$TEMP_TAG" --pattern '*.zip' --dir "$RUNNER_TEMP/pacotes" --repo "$GITHUB_REPOSITORY"
+          python "$EPISODIO/retocar.py" montar --base "$RUNNER_TEMP/base/$VIDEO" \
+            --pacotes "$RUNNER_TEMP/pacotes" --saida "$EPISODIO/dist/$VIDEO"
+          sha256sum "$EPISODIO/dist/$VIDEO"
+      - name: Publicar o arquivo conferido
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch --no-tags origin render/lua-na-roca-3d
+          git switch -c render/lua-na-roca-3d FETCH_HEAD
+          git merge --no-edit --no-ff "$GITHUB_SHA"
+          git add -f "$EPISODIO/dist/$VIDEO"
+          if ! git diff --cached --quiet; then
+            git commit -m 'Guardar a edição 3D com letreiros revisados'
+          fi
+          git push origin HEAD:render/lua-na-roca-3d
+          gh release upload "$TAG" "$EPISODIO/dist/$VIDEO" --repo "$GITHUB_REPOSITORY" --clobber
+          gh release delete "$TEMP_TAG" --repo "$GITHUB_REPOSITORY" --yes
