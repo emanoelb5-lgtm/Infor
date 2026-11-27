@@ -1,0 +1,84 @@
+[
+  {
+    "id": "abertura",
+    "titulo": "A pergunta de Rafael",
+    "texto": "Feijão, banana e cacau podem dividir o mesmo terreno? Dona Luzia mostra pra Rafael como começa uma agrofloresta.",
+    "acao": "Os dois caminham entre canteiros. Rafael abre a mão com o feijão e Dona Luzia indica as copas.",
+    "ritmo": "-2%",
+    "tom": "+0Hz",
+    "pausa": 0.25
+  },
+  {
+    "id": "desenho",
+    "titulo": "O desenho do plantio",
+    "texto": "Na agrofloresta, árvores e outros cultivos crescem juntos. O desenho do plantio considera o espaço, a luz e o tempo de cada espécie.",
+    "acao": "Uma maquete vista de cima recebe um marcador na faixa aberta, ao lado das árvores e das fileiras de cultivo.",
+    "ritmo": "-2%",
+    "tom": "+0Hz",
+    "pausa": 0.2
+  },
+  {
+    "id": "estratos",
+    "titulo": "A luz de cada faixa",
+    "texto": "Aqui, o feijão fica na faixa mais aberta. A bananeira dá sombra temporária ao cacau jovem, e o ingá cresce mais alto.",
+    "acao": "A câmera percorre a faixa aberta de feijão, a muda de cacau sob as folhas da bananeira e a copa mais alta do ingá.",
+    "ritmo": "-1%",
+    "tom": "+0Hz",
+    "pausa": 0.22
+  },
+  {
+    "id": "semeadura",
+    "titulo": "O feijão entra na terra",
+    "texto": "Rafael coloca o feijão na cova e cobre com terra solta. O começo dessa história acontece debaixo do chão.",
+    "acao": "A mão baixa até a cova, solta um grão e puxa a terra para cobri-lo. O enquadramento passa para um corte ampliado do solo.",
+    "ritmo": "-3%",
+    "tom": "+0Hz",
+    "pausa": 0.28
+  },
+  {
+    "id": "raiz",
+    "titulo": "A primeira raiz",
+    "texto": "O grão absorve água e incha. A casca se abre e sai a radícula, a primeira raiz. Depois aparecem as raízes laterais.",
+    "acao": "No corte do solo, a casca se abre junto ao embrião. A radícula avança entre as partículas e surgem raízes laterais mais finas.",
+    "ritmo": "-3%",
+    "tom": "+0Hz",
+    "pausa": 0.27
+  },
+  {
+    "id": "emergencia",
+    "titulo": "Atravessando a superfície",
+    "texto": "O caule jovem se curva e atravessa a terra, levando os cotilédones pra cima. Eles guardam as reservas que alimentam o início do crescimento.",
+    "acao": "O hipocótilo ergue o grão. A curva chega primeiro à superfície, desloca os torrões e puxa os cotilédones.",
+    "ritmo": "-2%",
+    "tom": "+0Hz",
+    "pausa": 0.25
+  },
+  {
+    "id": "folhas",
+    "titulo": "As primeiras folhas",
+    "texto": "O broto se endireita, os cotilédones se separam e o primeiro par de folhas se abre. Com a luz, a planta produz seu próprio alimento.",
+    "acao": "Os cotilédones se separam, o caule fica ereto e duas folhas simples se desenrolam. As nervuras aparecem à medida que as lâminas se estendem.",
+    "ritmo": "-2%",
+    "tom": "+0Hz",
+    "pausa": 0.24
+  },
+  {
+    "id": "manejo",
+    "titulo": "O retorno ao canteiro",
+    "texto": "No canteiro, Rafael confere o que brotou. Dona Luzia observa a sombra das copas. Conforme ela muda, os dois podem ajustar o manejo.",
+    "acao": "Rafael observa as plântulas e finca um marcador ao lado da fileira. Dona Luzia aponta o limite entre o sol e a sombra.",
+    "ritmo": "-2%",
+    "tom": "+0Hz",
+    "pausa": 0.24
+  },
+  {
+    "id": "diario",
+    "titulo": "Diário de Campo do AgroHere",
+    "texto": "No Diário de Campo do AgroHere, anote onde e quando plantou e registre o que brotou.",
+    "pronuncia": "No Diário de Campo do Agro Híer, anote onde e quando plantou e registre o que brotou.",
+    "acao": "A gravação real do AgroHere mostra a abertura do registro e a digitação do título e da observação de plantio.",
+    "ritmo": "-3%",
+    "tom": "+0Hz",
+    "pausa": 0.88
+  }
+]

@@ -12,8 +12,8 @@ EPISODIO = Path(__file__).resolve().parent
 VOZ = "pt-BR-ThalitaMultilingualNeural"
 
 
-async def narrar(destino: Path) -> None:
-    trechos = json.loads((EPISODIO / "roteiro.json").read_text(encoding="utf-8"))
+async def narrar(destino: Path, roteiro: Path = EPISODIO / "roteiro.json") -> None:
+    trechos = json.loads(roteiro.read_text(encoding="utf-8"))
     vozes = await edge_tts.list_voices()
     if VOZ not in {voz["ShortName"] for voz in vozes}:
         raise RuntimeError(f"A locução requer {VOZ}, indisponível neste serviço.")
@@ -40,5 +40,6 @@ async def narrar(destino: Path) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--destino", type=Path, default=EPISODIO / "assets" / "voz")
+    parser.add_argument("--roteiro", type=Path, default=EPISODIO / "roteiro.json")
     args = parser.parse_args()
-    asyncio.run(narrar(args.destino))
+    asyncio.run(narrar(args.destino, args.roteiro))
