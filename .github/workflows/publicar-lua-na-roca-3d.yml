@@ -104,6 +104,8 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
@@ -112,14 +114,15 @@ jobs:
           command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
           python -m pip install numpy
           gh release download "$TEMP_TAG" --repo "$GITHUB_REPOSITORY" --pattern '*.mp4' --dir "$RUNNER_TEMP/clipes"
-          python "$EPISODIO/montagem.py" montar --clipes "$RUNNER_TEMP/clipes"
-          sha256sum "$EPISODIO/dist/$VIDEO"
+          python "$EPISODIO/montagem.py" montar --clipes "$RUNNER_TEMP/clipes" \
+            --saida "$RUNNER_TEMP/edicao/$VIDEO"
+          sha256sum "$RUNNER_TEMP/edicao/$VIDEO"
       - name: Publicar a edição 3D
         run: |
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$EPISODIO/dist/$VIDEO" --repo "$GITHUB_REPOSITORY" --clobber
+            gh release upload "$TAG" "$RUNNER_TEMP/edicao/$VIDEO" --repo "$GITHUB_REPOSITORY" --clobber
           else
-            gh release create "$TAG" "$EPISODIO/dist/$VIDEO" --repo "$GITHUB_REPOSITORY" \
+            gh release create "$TAG" "$RUNNER_TEMP/edicao/$VIDEO" --repo "$GITHUB_REPOSITORY" \
               --target "$GITHUB_SHA" --title 'A Lua e o tempo da roça • edição 3D' \
               --notes-file "$EPISODIO/RELEASE.md"
           fi
@@ -129,9 +132,12 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           if git fetch --no-tags origin render/lua-na-roca-3d; then
             git checkout -B render/lua-na-roca-3d FETCH_HEAD
+            git merge --no-edit --no-ff "$GITHUB_SHA"
           else
             git checkout -b render/lua-na-roca-3d
           fi
+          mkdir -p "$EPISODIO/dist"
+          cp "$RUNNER_TEMP/edicao/$VIDEO" "$EPISODIO/dist/$VIDEO"
           git add -f "$EPISODIO/dist/$VIDEO"
           if ! git diff --cached --quiet; then
             git commit -m 'Guardar o MP4 verificado da edição 3D'
