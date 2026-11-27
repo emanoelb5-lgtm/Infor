@@ -24,7 +24,7 @@ env:
 
 jobs:
   preparar:
-    if: github.event.repository.private == false
+    if: github.event.repository.private == false && github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     outputs:
@@ -120,3 +120,42 @@ jobs:
             --jq ".assets[] | select(.name == \"$VIDEO\") | .digest")"
           test "$publicada" = "sha256:$soma"
           gh release delete "$TEMP_TAG" --repo "$GITHUB_REPOSITORY" --yes
+
+  sincronizar:
+    if: github.event.repository.private == false && github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Exportar e conferir a cadência de 30 quadros por segundo
+        run: |
+          command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+          python -m pip install numpy
+          gh release download "$TAG" --pattern "$VIDEO" --dir "$RUNNER_TEMP/base" --repo "$GITHUB_REPOSITORY"
+          python "$EPISODIO/retocar.py" relogio --base "$RUNNER_TEMP/base/$VIDEO" \
+            --saida "$RUNNER_TEMP/edicao/$VIDEO"
+      - name: Publicar o vídeo sincronizado
+        run: |
+          revisado="$RUNNER_TEMP/edicao/$VIDEO"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch --no-tags origin render/lua-na-roca-3d
+          git switch -c render/lua-na-roca-3d FETCH_HEAD
+          git merge --no-edit --no-ff "$GITHUB_SHA"
+          cp "$revisado" "$EPISODIO/dist/$VIDEO"
+          git add -f "$EPISODIO/dist/$VIDEO"
+          if ! git diff --cached --quiet; then
+            git commit -m 'Guardar a edição 3D com os quadros sincronizados'
+          fi
+          git show "HEAD:$EPISODIO/dist/$VIDEO" | cmp -s - "$revisado"
+          git push origin HEAD:render/lua-na-roca-3d
+          gh release upload "$TAG" "$revisado" --repo "$GITHUB_REPOSITORY" --clobber
+          soma="$(sha256sum "$revisado" | cut -d ' ' -f 1)"
+          publicada="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" \
+            --jq ".assets[] | select(.name == \"$VIDEO\") | .digest")"
+          test "$publicada" = "sha256:$soma"

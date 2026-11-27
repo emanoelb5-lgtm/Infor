@@ -47,6 +47,18 @@ def numero_frames(arquivo):
     return int(resultado.strip())
 
 
+def regularizar(base, destino, total):
+    destino.parent.mkdir(parents=True,exist_ok=True)
+    ffmpeg(["-threads","4","-i",str(base),"-map","0:v:0","-map","0:a:0","-map","0:s:0",
+        "-map_metadata","0","-vf","settb=expr=1/30000,setpts=N*1000","-r",str(FPS),
+        "-fps_mode","cfr","-c:v","libx264","-preset","veryfast","-crf","17",
+        "-threads","4","-c:a","copy","-c:s","copy","-pix_fmt","yuv420p",
+        "-color_primaries","bt709","-color_trc","bt709","-colorspace","bt709",
+        "-video_track_timescale","30000","-disposition:s:0","0","-movflags","+faststart",
+        str(destino)])
+    conferencia(destino,total)
+
+
 def montar(base, pacotes, destino, planos, total):
     destino.parent.mkdir(parents=True,exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="infor-letreiros-") as tmp:
@@ -75,10 +87,11 @@ def montar(base, pacotes, destino, planos, total):
         lista=pasta/"cortes.txt"
         lista.write_text("file noite.mp4\nfile base-1.mp4\nfile observacao.mp4\nfile base-3.mp4\n",
                          encoding="utf-8")
+        intermediario=pasta/"intermediario.mp4"
         ffmpeg(["-f","concat","-safe","1","-i",str(lista),"-i",str(base),
             "-map","0:v:0","-map","1:a:0","-map","1:s:0","-map_metadata","1","-c","copy",
-            "-disposition:s:0","0","-movflags","+faststart",str(destino)])
-    conferencia(destino,total)
+            "-disposition:s:0","0",str(intermediario)])
+        regularizar(intermediario,destino,total)
 
 
 def argumentos():
@@ -95,6 +108,9 @@ def argumentos():
     m.add_argument("--base",required=True,type=Path)
     m.add_argument("--pacotes",required=True,type=Path)
     m.add_argument("--saida",required=True,type=Path)
+    c=comandos.add_parser("relogio")
+    c.add_argument("--base",required=True,type=Path)
+    c.add_argument("--saida",required=True,type=Path)
     return p.parse_args()
 
 
@@ -107,3 +123,5 @@ if __name__=="__main__":
         parte(args,planos[args.plano])
     elif args.acao=="montar":
         montar(args.base,args.pacotes,args.saida,planos,total)
+    elif args.acao=="relogio":
+        regularizar(args.base,args.saida,total)
