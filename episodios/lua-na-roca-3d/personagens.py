@@ -107,7 +107,6 @@ class Mao:
             faces.append(tuple(grade[0,j,s] for j,s in ((i,-1),(i+1,-1),(i+1,1),(i,1))))
         self.obj = superficie("Pele contínua da mão",self.vertices,faces,mat,self.raiz,2)
         self.neutra = self.vertices.copy()
-        self.pontas = []
         self.pose((0,0,0),(0,0,1))
 
     def digito(self, base, comprimento, rx, ry, abertura, faces, polegar):
@@ -136,7 +135,6 @@ class Mao:
         self.raiz.rotation_mode = "QUATERNION"
         self.raiz.rotation_quaternion = orientar(direcao,giro)
         self.vertices[:] = self.neutra
-        self.pontas = []
         for i,(base,l,rx,ry,abr,lados,aneis,polegar) in enumerate(self.falanges):
             indice = i == (4 if self.lado == 1 else 1)
             flexao = min(1,max(0,fechar))*(1-indicar if indice else 1)
@@ -152,14 +150,7 @@ class Mao:
                 normal = ult.cross(horizontal)
                 for j,(a,b) in zip(anel,lados,strict=True):
                     self.vertices[j] = tuple(centro+horizontal*rx*a*fino+normal*ry*b*fino)
-            self.pontas.append(centro.copy())
         coordenadas(self.obj,self.vertices)
-
-    def ponta(self, indice):
-        return transformar(self.raiz,self.pontas[indice])
-
-    def pega(self):
-        return transformar(self.raiz,self.ENCAIXE)
 
     def punho(self,pos,direcao,giro=0):
         return Vector(pos)-orientar(direcao,giro)@(Vector(self.ENCAIXE)*self.escala)
@@ -234,7 +225,7 @@ class Rosto:
         cabelo=material("Fios grisalhos" if velha else "Cabelos castanhos",
                          "484348" if velha else "2d2326","a39187" if velha else "5a4140",36,.011,.79)
         self.mesh(pele)
-        self.cabelo(cabelo,pele)
+        self.cabelo(cabelo)
         for lado in (-1,1):
             x=lado*.102
             e=oval("Orelha", (lado*.229,.006,-.026),(.047,.057,.071),pele,pai)
@@ -352,15 +343,15 @@ class Rosto:
         self.palpebras.append(grupo)
         self.iris.append(mira)
 
-    def cabelo(self, mat, pele):
+    def cabelo(self, mat):
         pai=self.pai
         velha=self.velha
-        couro=perfil("Cabelo esculpido",[(.039,.191,.167,.092),(.101,.240,.180,.068),
+        perfil("Cabelo esculpido",[(.039,.191,.167,.092),(.101,.240,.180,.068),
              (.188,.249,.212,.043),(.261,.204,.184,.037),(.324,.159,.142,.045),
              (.363 if not velha else .344,.079,.089,.067),(.373 if not velha else .349,.007,.022,.075)],mat,pai)
         rng=Random(24 if velha else 48)
         if velha:
-            coque=oval("Coque baixo",(.030,.222,-.021),(.110,.107,.103),mat,pai)
+            oval("Coque baixo",(.030,.222,-.021),(.110,.107,.103),mat,pai)
             for i in range(7):
                 x=-.160+i*.049
                 fio("Mechas penteadas",[(x,-.144,.183+.021*sin(i)),(x+.032,-.128,.246),

@@ -1,6 +1,6 @@
 """Planos e coreografias da produção A Lua e o tempo da roça."""
 
-from math import atan2, cos, pi, sin
+from math import atan2, cos, hypot, pi, sin
 from random import Random
 
 import bpy
@@ -568,21 +568,40 @@ def balanca():
         return punho
 
     disposicoes=(
-        ((-.095,-.29,.085),.08),((.079,-.135,.087),.14),((-.123,.025,.088),-.12),
-        ((.066,.192,.087),.10),((-.095,.35,.092),-.13),
+        ((-.085,-.329),.063),((.074,-.169),.064),((-.129,.004),.062),
+        ((.071,.174),.061),((-.086,.345),.062),
     )
+
+    def altura_prato(r):
+        if r<.12:
+            return .047
+        if r<.58:
+            return .047+(r-.12)*.018/.46
+        if r<.68:
+            return .065+(r-.58)*.043/.10
+        return .108
+
+    def apoio_vagem(v,amostra):
+        giro=v.rotation_euler.to_quaternion()
+        x,y,_=v.location
+        vertices=(giro @ p for p in amostra)
+        return max(altura_prato(hypot(x+p.x,y+p.y))-p.z for p in vertices)+.0018
+
     def na_mao(i):
         corpo=transformar(mao.raiz,(0,-.113,.176))
-        coluna=(i%3-1)*.098
-        return corpo+Vector((i%2*.04,coluna,(i//3)*.094))
+        coluna=(i%3-1)*.126
+        return corpo+Vector((0,coluna,(i//3)*.106))
 
     vagens=[]
-    for i,(fim,angulo) in enumerate(disposicoes):
+    for i,((x,y),angulo) in enumerate(disposicoes):
         instante=.413+.043*i
         gesto(instante)
         origem=na_mao(i)
-        v=vagem(bandeja,fim,angulo)
-        vagens.append((v,Vector(fim),origem,instante,angulo))
+        v=vagem(bandeja,(x,y,0),angulo)
+        casca=next(o for o in v.children if o.type=="MESH")
+        amostra=[vértice.co.copy() for vértice in casca.data.vertices]
+        apoio=Vector((x,y,apoio_vagem(v,amostra)))
+        vagens.append((v,apoio,origem,instante,angulo,amostra))
     def animar(t,u):
         p=gesto(u)
         braco.pose(Vector((2.92,.49,3.33)),Vector((1.76,.43,2.98)),p)
@@ -590,14 +609,21 @@ def balanca():
         mola=sin((u-.529)*61)*max(0,1-(u-.529)*3.8) if u>.529 else 0
         ponteiro.rotation_euler.y=-1.27+(peso+.13*mola)*1.58
         bandeja.location.z=1.78-.052*peso+.007*mola
-        for i,(v,fim,origem,instante,a) in enumerate(vagens):
+        for i,(v,fim,origem,instante,a,amostra) in enumerate(vagens):
             if u<instante:
                 mundo=na_mao(i)
                 q=0
             else:
                 mundo,q=trajeto(u,instante,.117,origem,bandeja.location+fim,.018)
+                espalhar=regime(q,.29,.77)
+                destino=bandeja.location+fim
+                mundo.x=origem.x+(destino.x-origem.x)*espalhar
+                mundo.y=origem.y+(destino.y-origem.y)*espalhar
             v.location=mundo-bandeja.location
-            v.rotation_euler=(.40*sin(pi*q),.25*sin(pi*q),.20+(a-.20)*q)
+            giro=regime(q,.26,.90)
+            v.rotation_euler=(.21*sin(pi*giro),.17*sin(pi*giro),.20+(a-.20)*giro)
+            if q>=.75:
+                v.location.z=max(v.location.z,apoio_vagem(v,amostra))
         cam((.68-.91*u,-4.53+.32*u,2.63),(.04,0,1.84),3.06,foco=(0,0,1.94))
     return animar
 

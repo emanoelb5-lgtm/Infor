@@ -75,7 +75,7 @@ jobs:
         with:
           path: ${{ runner.temp }}/infor-blender
           key: blender-4.3.2-linux-x64
-      - name: Renderizar o lote em 3D
+      - name: Renderizar o lote com as poses e contatos revisados
         run: |
           command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
           python -m pip install numpy
