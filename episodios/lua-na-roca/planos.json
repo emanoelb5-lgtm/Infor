@@ -1,52 +1,47 @@
 {
   "01-pergunta": [
-    {"imagem": "noite", "efeito": "luar", "peso": 0.56, "camera": [1.0, 0.49, 0.5, 1.08, 0.51, 0.46]},
-    {"imagem": "noite", "efeito": "luar", "peso": 0.44, "camera": [1.37, 0.53, 0.4, 1.46, 0.54, 0.4]}
+    {"imagem":"noite", "peso":0.65, "camera":[1.02,0.52,0.48]},
+    {"imagem":"plantio", "peso":0.35, "camera":[1.36,0.59,0.63]}
   ],
   "02-terreiro": [
-    {"imagem": "prosa", "efeito": "lampiao", "peso": 0.44, "camera": [1.0, 0.54, 0.5, 1.07, 0.54, 0.48]},
-    {"imagem": "prosa", "efeito": "lampiao", "peso": 0.32, "camera": [1.5, 0.36, 0.4, 1.6, 0.37, 0.39]},
-    {"imagem": "sementes", "efeito": "sementes", "peso": 0.24, "camera": [1.025, 0.5, 0.51, 1.025, 0.5, 0.51]}
+    {"imagem":"prosa", "peso":0.55, "camera":[1.02,0.52,0.49]},
+    {"imagem":"noite", "peso":0.45, "camera":[1.36,0.54,0.40]}
   ],
   "03-fases": [
-    {"imagem": "ceu", "efeito": "quatro-fases", "peso": 0.41},
-    {"imagem": "sementes", "efeito": "lampiao", "peso": 0.22, "camera": [1.025, 0.5, 0.51, 1.025, 0.5, 0.51]},
-    {"imagem": "plantio", "peso": 0.18, "camera": [1.025, 0.5, 0.51, 1.025, 0.5, 0.51]},
-    {"imagem": "colheita", "peso": 0.19, "camera": [1.36, 0.67, 0.65, 1.2, 0.62, 0.59]}
+    {"imagem":"ceu", "efeito":"quatro-fases", "peso":0.43},
+    {"imagem":"sementes", "peso":0.43, "camera":[1.025,0.5,0.51]},
+    {"imagem":"colheita", "peso":0.14, "camera":[1.3,0.63,0.64]}
   ],
   "04-ciclo": [
-    {"imagem": "ceu", "efeito": "ciclo", "peso": 0.71},
-    {"imagem": "amanhecer", "efeito": "neblina", "peso": 0.29, "camera": [1.025, 0.5, 0.51, 1.025, 0.5, 0.51]}
+    {"imagem":"ceu", "efeito":"ciclo", "peso":0.73},
+    {"imagem":"amanhecer", "peso":0.27, "camera":[1.025,0.53,0.51]}
   ],
   "05-plantio": [
-    {"imagem": "plantio", "efeito": "poeira", "peso": 0.33, "camera": [1.025, 0.5, 0.51, 1.025, 0.5, 0.51]},
-    {"imagem": "broto", "efeito": "chuva", "peso": 0.33, "camera": [1.025, 0.5, 0.51, 1.025, 0.5, 0.51]},
-    {"imagem": "amanhecer", "efeito": "neblina", "peso": 0.34, "camera": [1.025, 0.5, 0.51, 1.025, 0.5, 0.51]}
+    {"imagem":"terra", "peso":0.53, "camera":[1.12,0.51,0.56]},
+    {"imagem":"canteiros", "peso":0.47, "camera":[1.04,0.50,0.50]}
   ],
   "06-observacao": [
-    {"imagem": "caderno", "efeito": "nota-lunar", "peso": 0.44, "camera": [1.025, 0.5, 0.51, 1.025, 0.5, 0.51]},
-    {"imagem": "canteiros", "efeito": "sombra", "peso": 0.31, "camera": [1.025, 0.5, 0.51, 1.025, 0.5, 0.51]},
-    {"imagem": "anotar", "peso": 0.25, "camera": [1.1, 0.54, 0.46, 1.21, 0.57, 0.49]}
+    {"imagem":"caderno", "efeito":"nota-lunar", "peso":0.44, "camera":[1.1,0.47,0.54]},
+    {"imagem":"amanhecer", "peso":0.28, "camera":[1.22,0.50,0.53]},
+    {"imagem":"anotar", "peso":0.28, "camera":[1.18,0.53,0.47]}
   ],
   "07-registro": [
-    {"imagem": "plantio", "efeito": "poeira", "peso": 0.22, "camera": [1.025, 0.5, 0.51, 1.025, 0.5, 0.51]},
-    {"imagem": "anotar", "peso": 0.19, "camera": [1.51, 0.53, 0.67, 1.48, 0.58, 0.66]},
-    {"imagem": "caderno", "efeito": "ficha", "peso": 0.59, "camera": [1.025, 0.5, 0.51, 1.025, 0.5, 0.51]}
+    {"imagem":"plantio", "peso":0.38, "camera":[1.06,0.53,0.54]},
+    {"imagem":"caderno", "efeito":"ficha", "peso":0.62, "camera":[1.01,0.50,0.51]}
   ],
   "08-colheita": [
-    {"imagem": "broto", "efeito": "brotacao", "peso": 0.29, "camera": [1.025, 0.5, 0.51, 1.025, 0.5, 0.51]},
-    {"imagem": "balanca", "peso": 0.4, "camera": [1.025, 0.5, 0.51, 1.025, 0.5, 0.51]},
-    {"imagem": "canteiros", "efeito": "sombra", "peso": 0.31, "camera": [1.025, 0.5, 0.51, 1.025, 0.5, 0.51]}
+    {"imagem":"broto", "peso":0.37, "camera":[1.04,0.53,0.52]},
+    {"imagem":"balanca", "peso":0.49, "camera":[1.02,0.50,0.49]},
+    {"imagem":"canteiros", "peso":0.14, "camera":[1.12,0.49,0.51]}
   ],
   "09-memoria": [
-    {"imagem": "colheita", "peso": 0.43, "camera": [1.0, 0.53, 0.5, 1.11, 0.53, 0.48]},
-    {"imagem": "anotar", "peso": 0.32, "camera": [1.08, 0.5, 0.5, 1.19, 0.47, 0.49]},
-    {"imagem": "caderno", "efeito": "ficha-pronta", "peso": 0.25, "camera": [1.025, 0.5, 0.51, 1.025, 0.5, 0.51]}
+    {"imagem":"colheita", "peso":0.37, "camera":[1.05,0.53,0.48]},
+    {"imagem":"caderno", "efeito":"ficha-pronta", "peso":0.63, "camera":[1.09,0.48,0.54]}
   ],
   "10-calendario": [
-    {"imagem": "calendario-agrohere", "video": "calendario.mp4", "entrada_s": 0.22, "velocidade": 1.55, "peso": 1.0}
+    {"imagem":"calendario-agrohere", "video":"calendario.mp4", "entrada_s":0.22, "velocidade":1.55, "peso":1.0}
   ],
   "11-diario": [
-    {"imagem": "diario-agrohere", "video": "diario.mp4", "entrada_s": 0.0, "velocidade": 1.0, "peso": 1.0}
+    {"imagem":"diario-agrohere", "video":"diario.mp4", "entrada_s":0.0, "velocidade":1.0, "peso":1.0}
   ]
 }

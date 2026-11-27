@@ -8,7 +8,7 @@ import random
 import numpy as np
 from PIL import Image, ImageDraw
 
-from movimento import cena_atuada, riscar
+from movimento import brotar, pesar, plantar, recorte_animado, riscar, servir_sementes
 
 ARTES = Path(__file__).resolve().parent / "assets" / "imagens"
 
@@ -119,21 +119,19 @@ def pontos(semente, quantidade):
     return [(gerador.random(), gerador.random(), gerador.random(), gerador.random()) for _ in range(quantidade)]
 
 
-def pintar_ceu(plano, u, t, w, h):
+def pintar_ceu(plano, u, w, h):
     imagem = fundo_ceu(w, h).copy()
     pincel = ImageDraw.Draw(imagem, "RGBA")
-    for x, y, luz, vel in pontos(330, 190):
-        px = ((x + t * (0.0015 + vel * 0.0018)) % 1) * w
-        py = ((y + t * 0.0019) % 1) * h
-        r = 0.55 + 0.85 * luz**3
-        alfa = int(26 + 168 * luz * (0.78 + 0.22 * sin(t * (2 + vel) + luz * 45)))
-        pincel.ellipse((px - r, py - r, px + r, py + r), fill=(208, 227, 224, alfa))
+    for x, y, luz, _ in pontos(330, 190):
+        px, py = x*w, y*h
+        r = 0.55 + 0.85*luz**3
+        pincel.ellipse((px-r,py-r,px+r,py+r),fill=(208,227,224,int(26+158*luz)))
     if plano == "quatro-fases":
         fases = (0, 0.25, 0.5, 0.75)
         for i, fase in enumerate(fases):
             foco = suave((u - i * 0.157) * 11)
             x = (0.19 + 0.206 * i) * w
-            y = (0.48 + sin(i * 1.05) * 0.033 + (1 - foco) * 0.07) * h
+            y = 0.49 * h
             d = w * (0.095 + foco * 0.06)
             inserir_lua(imagem, fase * foco, x, y, d)
             if i == 0:
@@ -161,14 +159,12 @@ def pintar_ceu(plano, u, t, w, h):
     return imagem
 
 
-def tela_camera(imagem, camera, u, w, h):
-    zo, xo, yo, zf, xf, yf = camera
-    passo = u + sin(u * pi * 2) * 0.038
-    z = zo + (zf - zo) * passo
-    cw = min(imagem.width, imagem.height * w / h) / z
+def tela_camera(imagem, camera, w, h):
+    zoom, cx, cy = camera
+    cw = min(imagem.width, imagem.height * w / h) / zoom
     ch = cw * h / w
-    x = limitar((xo + (xf - xo) * passo) * imagem.width - cw / 2, 0, imagem.width - cw)
-    y = limitar((yo + (yf - yo) * passo) * imagem.height - ch / 2, 0, imagem.height - ch)
+    x = limitar(cx * imagem.width - cw / 2, 0, imagem.width - cw)
+    y = limitar(cy * imagem.height - ch / 2, 0, imagem.height - ch)
     return imagem.transform((w, h), Image.Transform.AFFINE, (cw / w, 0, x, 0, ch / h, y), Image.Resampling.BILINEAR)
 
 
@@ -214,64 +210,29 @@ def pintar_ficha(imagem, efeito, u):
             pincel.line((x - 3, y - 14, x + 14, y + 3), fill=tinta, width=3)
 
 
-@lru_cache(maxsize=4)
-def atmosfera(w, h):
-    y, x = np.mgrid[-1:1:complex(h // 4), -1:1:complex(w // 4)]
-    densidade = np.exp(-(y * (2 + 0.45 * cos(pi / 8))) ** 2 - (x * 1.65) ** 2)
-    pixels = np.zeros((*densidade.shape, 4), dtype=np.uint8)
-    pixels[:, :, :3] = (252, 204, 157)
-    pixels[:, :, 3] = np.uint8(densidade * 29)
-    return Image.fromarray(pixels, "RGBA").resize((w, h), Image.Resampling.BILINEAR)
-
-
-def ambiente(imagem, efeito, t, u, w, h):
-    pincel = ImageDraw.Draw(imagem, "RGBA")
-    if efeito in ("chuva", "brotacao", "poeira", "sementes", "lampiao", "luar"):
-        chuva = efeito in ("chuva", "brotacao")
-        dia = efeito == "poeira"
-        for x, y, s, v in pontos(71 if chuva else 91, 76 if chuva else 23):
-            px = (x + sin(t * 0.48 + y * 8) * 0.02 - (0.10 * t if chuva else 0)) % 1 * w
-            py = (y + t * ((0.41 + v * 0.73) if chuva else (0.036 + 0.026 * v))) % 1 * h
-            if chuva:
-                comprimento = (9 + s * 29) * h / 1280
-                pincel.line((px + comprimento * 0.19, py, px, py + comprimento), fill=(211, 232, 217, int(16 + 50 * s)), width=1 if s < 0.84 else 2)
-            elif (dia and py > h * 0.69) or (not dia and py < h * 0.77):
-                raio = (0.7 + s * 2.5) * w / 720
-                brilho = round((19 + 79 * s) * (0.56 + 0.44 * sin(v * 72 + t * 2.7) ** 2))
-                pincel.ellipse((px - raio, py - raio, px + raio, py + raio), fill=(246, 194, 121, brilho))
-    if efeito == "neblina":
-        for i in range(2):
-            camada = atmosfera(w, h // (5 + i))
-            inserir(imagem, camada, w * (0.31 + 0.35 * i + 0.11 * sin(t * 0.33 + i)), h * (0.48 + 0.13 * i))
-    if efeito == "sombra":
-        sombra = atmosfera(w, h // 2).getchannel("A")
-        camada = Image.new("RGBA", sombra.size, (38, 64, 47))
-        camada.putalpha(sombra)
-        inserir(imagem, camada, w * (0.42 + u * 0.06), h * 0.48)
-
-
 def quadro(plano, frame, total, fps, w, h):
     u = frame / max(1, total - 1)
-    t = frame / fps
     efeito = plano.get("efeito", "")
     nome = plano["imagem"]
     if nome == "ceu":
-        imagem = pintar_ceu(efeito, u, t, w, h)
+        return pintar_ceu(efeito, u, w, h)
+    if nome == "noite":
+        base = recorte_animado("rosto", u)
+        inserir_lua(base, .469, 343, 154, 97)
+    elif nome == "prosa":
+        base = recorte_animado("conversa", u)
+    elif nome == "sementes":
+        base = servir_sementes(u)
+    elif nome in ("plantio", "terra"):
+        base = plantar(u, solo=nome == "terra")
+    elif nome == "broto":
+        base = brotar(u)
+    elif nome == "balanca":
+        base = pesar(u)
+    elif nome == "caderno":
+        base = arte(nome).copy()
+        pintar_ficha(base, efeito, u)
+        riscar(base, efeito, u)
     else:
-        base = cena_atuada(nome, efeito, arte(nome), u, t)
-        if nome in ("noite", "caderno"):
-            base = base.copy()
-            if nome == "noite":
-                inserir_lua(base, 0.43 + 0.012 * sin(t * 0.45), 342 - t, 155 + t * 0.55, 105)
-            else:
-                pintar_ficha(base, efeito, u)
-                riscar(base, efeito, u)
-        camera = plano.get("camera", [1, 0.5, 0.5, 1.08, 0.5, 0.5])
-        imagem = tela_camera(base, camera, u, w, h)
-        ambiente(imagem, efeito, t, u, w, h)
-    intensidade = 1.0
-    if plano.get("abertura"):
-        intensidade = 0.78 + 0.22 * suave(t / 0.44)
-    if intensidade < 1:
-        imagem = Image.blend(Image.new("RGB", (w, h), (4, 10, 15)), imagem, intensidade)
-    return imagem
+        base = arte(nome)
+    return tela_camera(base, plano.get("camera", [1, .5, .5]), w, h)

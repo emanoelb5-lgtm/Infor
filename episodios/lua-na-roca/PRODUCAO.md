@@ -13,6 +13,17 @@
 
 Os guias foram obtidos de `heygen-com/hyperframes@f00e93479546eca4c7d841859174fe32d53b2564` e `prathameshp107/video-editing@b344da99bfaeb496c048703b82bf1a034d732f2a`. Os primeiros vêm de `skills/` e os segundos de `.agents/skills/` nos repositórios de origem. As pastas escolhidas foram copiadas para `.agents/skills/` no projeto de produção.
 
+## Guias aplicados à revisão da animação
+
+| Guia pesquisado | Aplicação no Reel |
+| --- | --- |
+| [Blender Animation](https://github.com/EL4CTEO/blender-skills/tree/1a1cc6c49312f9f370aae86f52b7b907f29c94f6/skills/blender-animation) | Poses de entrada, contato, soltura e repouso. As curvas de Bézier foram avaliadas no Blender 4.3 e exportadas para a composição. |
+| [Blender Asset QA](https://github.com/EL4CTEO/blender-skills/tree/1a1cc6c49312f9f370aae86f52b7b907f29c94f6/skills/blender-asset-qa) | Inspeção das oito vistas do grão renderizado, da silhueta, da transparência e da escala do grão na mão e na tigela. |
+| [Scenario Blender Previs & Storyboard](https://github.com/scenario-labs/skills/tree/3c4d18cd0be2e5280a5accebfeef9ddc98b9a15b/skills/dcc/blender/scenario-blender-previs-storyboard) | Uma ação principal por plano. As câmeras foram fixadas no roteiro visual e a revisão comparou poses de entrada, contato e saída. |
+| [Editing & Montage](https://github.com/calesthio/generative-media-skills/tree/8c85352d5d75d4dcbe58480bd138e37b9742bab1/skills/production/post-production/editing-montage) | Corte do olhar para a semeadura, maior duração para a queda dos grãos e sincronização dos sons com o contato. |
+
+Os quatro guias foram copiados para `.agents/skills/` no ambiente de produção. A renderização usou Blender, Python e FFmpeg localmente.
+
 ## Fontes do roteiro
 
 - A sequência das fases e os aproximadamente 29,5 dias entre duas luas novas seguem a explicação da [NASA](https://science.nasa.gov/moon/moon-phases/). A animação representa a iluminação da esfera lunar. O relevo e a inclinação são ilustrativos.
@@ -23,7 +34,7 @@ Os guias foram obtidos de `heygen-com/hyperframes@f00e93479546eca4c7d841859174fe
 ## Créditos das mídias
 
 - Ilustrações originais geradas para o episódio, com ambientação inspirada no nordeste paraense. As pessoas e a propriedade são fictícias.
-- A iluminação da Lua, os pictogramas e os efeitos de atmosfera são compostos em `visuais.py`.
-- `movimento.py` articula os gestos com uma malha de deformação. Os recortes em `assets/movimento/` acompanham trajetórias de semeadura, escrita e colheita. Grãos, vagens e folhas recebem movimento independente.
+- A iluminação da Lua e as marcas do caderno são compostas em `visuais.py`. O fundo de cada plano tem posição fixa.
+- `movimento.py` aplica as poses aos recortes do rosto, do braço e das mãos. Grãos, vagens e folhas recebem movimento independente. O grão foi modelado e renderizado em Blender a partir de `animar_no_blender.py`.
 - A Agenda e o Diário de Campo foram gravados no APK oficial AgroHere 1.2.0 em um emulador Android. A anotação mostrada usa dados fictícios. Os trechos originais aproveitados na montagem estão em `assets/capturas/`.
 - Trilha e ambiência originais sintetizadas em `som.py`.

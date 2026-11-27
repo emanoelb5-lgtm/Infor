@@ -98,42 +98,36 @@ def trilha(voz, planos, fps):
 
     ambiente = np.zeros_like(musica)
     for plano in planos:
-        efeito = plano.get("efeito", "")
         imagem = plano["imagem"]
         inicio = plano["inicio"] / fps
         d = plano["frames"] / fps
-        if efeito in ("chuva", "brotacao"):
-            t = tempo(d)
-            chuva = (ruido(rng, d, 7600) * 0.0046 + ruido(rng, d, 1750) * 0.004)
-            chuva *= np.minimum(1, t / 0.34) * np.minimum(1, (d - t) / 0.25)
-            colocar(ambiente, chuva, inicio, -0.29)
-            colocar(ambiente, chuva * 0.33, inicio + 0.013, 0.61)
-        elif imagem in ("noite", "prosa"):
+        if imagem in ("noite", "prosa"):
             for k in range(max(1, round(d * 1.4))):
                 t = tempo(0.155)
                 batida = np.sin(2 * pi * (2940 + rng.uniform(-420, 360)) * t)
                 envelope = np.sin(pi * t / 0.155)**2 * (0.55 + 0.45 * np.sin(t * 2 * pi * 38)**2)
-                colocar(ambiente, batida * envelope * 0.007, inicio + k * 0.68 + 0.2, rng.uniform(-0.55, 0.55))
-        elif imagem in ("sementes", "balanca", "anotar", "caderno", "plantio"):
-            duracao_toque = 0.26 if imagem in ("anotar", "caderno") else 0.13
-            t = tempo(duracao_toque)
-            batidas = {
-                "sementes": (.47, .53, .56, .62, .67, .72, .75),
-                "balanca": (.52, .64, .72),
-                "anotar": (.27, .39, .54),
-                "caderno": (.23, .34, .49, .61),
-                "plantio": (.65,),
-            }
-            for k, ponto in enumerate(batidas[imagem]):
-                tom = np.sin(2 * pi * (380 + k * 82) * t)
-                toque = (tom * 0.005 + ruido(rng, duracao_toque, 2400) * 0.006) * np.exp(-t * 30)
-                colocar(ambiente, toque, inicio + d * ponto, 0.16)
-        elif imagem == "amanhecer":
-            t = tempo(0.31)
-            envoltoria = np.sin(pi * t / 0.31)**2
-            canto = np.sin(2 * pi * (1346 * t + 2280 * t**2)) * envoltoria * 0.009
-            colocar(ambiente, canto, inicio + 0.26, -0.56)
-            colocar(ambiente, canto * 0.63, inicio + 0.52, -0.47)
+                colocar(ambiente, batida * envelope * 0.0035, inicio + k * 0.68 + 0.2, rng.uniform(-0.55, 0.55))
+        elif imagem == "caderno":
+            d_riscar = d*0.585
+            t = tempo(d_riscar)
+            papel = ruido(rng,d_riscar,1350) * (0.0024 + 0.0033*np.sin(t*16)**2)
+            papel *= np.minimum(1,t/.06)*np.minimum(1,(d_riscar-t)/.12)
+            colocar(ambiente,papel,inicio+d*.19,-.15)
+        elif imagem in ("sementes", "balanca", "terra", "plantio"):
+            if imagem == "sementes":
+                batidas = tuple(sorted(.365 + i*.0089 + .154 + .014*(i%4) for i in range(26)))
+                frequencia, volume = 590, .011
+            elif imagem == "balanca":
+                batidas = (.666,.682,.698)
+                frequencia, volume = 950, .006
+            else:
+                batidas = (.59,) if imagem == "terra" else (.685,)
+                frequencia, volume = 195, .007
+            t = tempo(.075)
+            for ponto in batidas:
+                tom = np.sin(2*pi*frequencia*rng.uniform(.76,1.19)*t)
+                toque = (tom*.38 + ruido(rng,.075,4100)*.62) * np.exp(-t*91) * volume
+                colocar(ambiente,toque,inicio+d*ponto,rng.uniform(-.12,.25))
 
     tamanho = TAXA // 10
     envelope = np.sqrt(np.mean(voz[:n // tamanho * tamanho].reshape(-1, tamanho)**2, axis=1))
