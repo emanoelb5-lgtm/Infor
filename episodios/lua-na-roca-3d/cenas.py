@@ -346,7 +346,7 @@ def anotacoes(tipo):
     tinta = material("Lápis no papel","5c4538")
     tit = material("Letra em verde escuro","354a3f")
     if tipo == "observacao":
-        nomes = [("Caderno de campo", -.99,.66,.144),("Observações",-.99,.38,.118),
+        nomes = [("Caderno de campo", -.99,.66,.103),("Observações",-.99,.38,.118),
                  ("Fase da Lua",.16,.665,.137),("Lua crescente",.17,.425,.108),
                  ("Umidade do solo",.17,.135,.096)]
     elif tipo == "dados":

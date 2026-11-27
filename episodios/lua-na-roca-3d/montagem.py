@@ -136,8 +136,8 @@ def letreiros(plano, arquivo):
         linhas.append(f"Dialogue: 0,{stamp(entrada,True)},{stamp(saida,True)},{estilo},,0,0,0,,{tags}{texto}")
     nome = plano["nome"]
     if nome == "noite":
-        evento("Apoio","INFOR",540,124,.43,4.89)
-        evento("Titulo",r"A Lua e o\Ntempo da roça",540,185,.59,4.89)
+        evento("Apoio","INFOR",410,124,.43,4.89)
+        evento("Titulo",r"A Lua e o\Ntempo da roça",410,181,.59,4.89)
     if nome == "fases":
         evento("Apoio","AS FASES DA LUA",540,238)
         for palavra,x,y,i in (("Nova",246,786,0),("Crescente",834,786,1),
