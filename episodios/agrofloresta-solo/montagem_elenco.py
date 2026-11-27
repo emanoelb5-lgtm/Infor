@@ -2,6 +2,7 @@
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor
+from fractions import Fraction
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -106,6 +107,43 @@ def comparar(origem, final, pasta, originais):
     print("Locução, trilha, legenda e quatro planos preservados conferidos por conteúdo.",flush=True)
 
 
+def timestamps(lista):
+    """Lê a ordem de apresentação e decodificação que o CONCAT entregou."""
+    cmd = ["ffprobe","-v","error","-f","concat","-safe","1","-i",str(lista),
+           "-select_streams","v:0","-show_entries","packet=pts:stream=time_base","-of","json"]
+    dados = json.loads(subprocess.check_output(cmd))
+    base = Fraction(dados["streams"][0]["time_base"])
+    passo = 1 / (base * FPS_FINAL)
+    if passo.denominator != 1:
+        raise RuntimeError(f"A base {base} não admite quadros inteiros a {FPS_FINAL} fps.")
+    ordem = [round(Fraction(p["pts"],passo.numerator)) for p in dados["packets"]]
+    return passo.numerator, ordem
+
+
+def unir_video(lista, saida):
+    passo, ordem = timestamps(lista)
+    quantidade = sum(n for _,n,_ in QUADROS)
+    if len(ordem) != quantidade:
+        raise RuntimeError(f"O concatenador entregou {len(ordem)} de {quantidade} quadros.")
+    cursor, correcoes, ordem_exata = 0, [], []
+    for plano, quantidade, _ in QUADROS:
+        parte = ordem[cursor:cursor+quantidade]
+        inicio = min(parte)
+        if sorted(parte) != list(range(inicio, inicio+quantidade)):
+            raise RuntimeError(f"O plano {plano} contém lacunas na apresentação.")
+        desvio = cursor-inicio
+        if desvio:
+            correcoes.append(f"+({desvio})*between(N\\,{cursor}\\,{cursor+quantidade-1})")
+        ordem_exata.extend(i+desvio for i in parte)
+        cursor += quantidade
+    atraso = max(2, max(n-p for n,p in enumerate(ordem_exata)))
+    pts = f"(floor(PTS/{passo}+0.5){''.join(correcoes)})*{passo}"
+    dts = f"(N-{atraso})*{passo}"
+    ffmpeg(["-f","concat","-safe","1","-i",str(lista),"-map","0:v:0","-c:v","copy",
+            "-bsf:v",f"setts=pts={pts}:dts={dts}:duration={passo}",
+            "-avoid_negative_ts","disabled","-use_editlist","1","-video_track_timescale","30000",str(saida)])
+
+
 def editar(origem, pacotes, destino):
     origem,destino=origem.resolve(),destino.resolve()
     with origem.open("rb") as arquivo:
@@ -141,10 +179,20 @@ def editar(origem, pacotes, destino):
             for i,(_,n,fps) in enumerate(QUADROS)
         ),encoding="utf-8")
         temporário=destino.with_name(f".{destino.name}.parte.mp4")
-        ffmpeg(["-f","concat","-safe","1","-i",str(lista),"-i",str(origem),
+        só_video = pasta/"video-com-tempos-exatos.mp4"
+        unir_video(lista,só_video)
+        ffmpeg(["-copyts","-i",str(só_video),"-i",str(origem),
                 "-map","0:v:0","-map","1:a:0","-map","1:s:0","-c","copy","-map_metadata","1",
+                "-avoid_negative_ts","disabled","-use_editlist","1",
                 "-video_track_timescale","30000","-movflags","+faststart",str(temporário)])
-        conferencia(temporário, sum(n for _,n,_ in QUADROS))
+        try:
+            conferencia(temporário, sum(n for _,n,_ in QUADROS))
+        except (RuntimeError, subprocess.CalledProcessError):
+            print([{
+                chave: faixa.get(chave)
+                for chave in ("codec_name","codec_type","nb_frames","start_time","duration","time_base","r_frame_rate")
+            } for faixa in detalhes(temporário)],flush=True)
+            raise
         comparar(origem,temporário,pasta,[i for i,(_,_,fps) in enumerate(QUADROS) if fps is None])
         temporário.replace(destino)
 

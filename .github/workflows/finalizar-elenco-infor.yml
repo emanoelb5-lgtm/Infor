@@ -1,0 +1,71 @@
+name: Finalizar a edição com o elenco Infor
+
+on:
+  workflow_dispatch:
+    inputs:
+      execucao:
+        description: Execução que contém os quadros do elenco
+        required: true
+        default: '46046529602'
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/finalizar-elenco-infor.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: elenco-infor-folha-ao-solo
+  cancel-in-progress: false
+
+env:
+  EPISODIO: episodios/agrofloresta-solo
+  MODELOS: personagens/elenco
+  VIDEO: Agrofloresta_Da_Folha_ao_Solo_Elenco_Infor.mp4
+  ELENCO: Elenco_Infor_Seu_Joao_e_Dona_Maria.blend
+  APROVADO: 0ac0a57d8862e3a3fafa41ba77a8973cd47d2a1c
+  TAG: agrofloresta-da-folha-ao-solo-elenco
+  COPIA: render/agrofloresta-solo-elenco
+  RASCUNHO: infor-elenco-quadros-${{ inputs.execucao || '46046529602' }}
+  GH_TOKEN: ${{ github.token }}
+  OPENBLAS_NUM_THREADS: '1'
+
+jobs:
+  montar:
+    if: github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/infor-blender
+          key: blender-4.3.2-linux-x64
+      - uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/infor-mpfb
+          key: mpfb-d9648f3257a0b9712281d466245f30d656250154-elenco
+      - name: Remontar os planos renderizados
+        run: |
+          bash episodios/agrofloresta/preparar-ffmpeg.sh
+          python -m pip install numpy
+          git fetch --depth 1 --no-tags origin "$APROVADO"
+          base="$RUNNER_TEMP/aprovado.mp4"
+          git show "FETCH_HEAD:$EPISODIO/dist/Agrofloresta_Da_Folha_ao_Solo_Reel.mp4" > "$base"
+          gh release download "$RASCUNHO" --pattern 'lote-*.zip' --dir "$RUNNER_TEMP/quadros" --repo "$GITHUB_REPOSITORY"
+          python "$EPISODIO/montagem_elenco.py" editar "$base" "$RUNNER_TEMP/quadros" "$RUNNER_TEMP/edicao/$VIDEO"
+      - name: Exportar o elenco articulado
+        run: |
+          export INFOR_MPFB_DATA="$RUNNER_TEMP/infor-mpfb"
+          python "$MODELOS/obter-dados.py" "$INFOR_MPFB_DATA"
+          bash episodios/lua-na-roca-3d/preparar-blender.sh "$RUNNER_TEMP/infor-blender"
+          blender="$RUNNER_TEMP/infor-blender/blender-4.3.2-linux-x64/blender"
+          "$blender" -b -t 4 --python-exit-code 1 --python "$MODELOS/exportar.py" -- "$RUNNER_TEMP/edicao/$ELENCO"
+      - name: Publicar os dois arquivos conferidos
+        run: bash "$EPISODIO/publicar-elenco.sh" "$RUNNER_TEMP/edicao/$VIDEO" "$RUNNER_TEMP/edicao/$ELENCO"
