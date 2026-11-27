@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from cenas import PLANOS
 
 
-def renderizar(args):
+def renderizar(args, planos=PLANOS):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
     scene.render.engine = "CYCLES"
@@ -36,7 +36,7 @@ def renderizar(args):
     scene.view_settings.view_transform = "AgX"
     scene.view_settings.look = "AgX - Medium High Contrast"
     scene.view_settings.exposure = 0.31
-    cena = PLANOS[args.plano]()
+    cena = planos[args.plano]()
     args.pasta.mkdir(parents=True, exist_ok=True)
     if args.previa:
         quadros = [(f"previa-{int(fracao*100):03d}",fracao) for fracao in args.previa]
@@ -49,9 +49,9 @@ def renderizar(args):
         bpy.ops.render.render(write_still=True)
 
 
-def argumentos():
+def argumentos(planos=PLANOS):
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--plano", required=True, choices=sorted(PLANOS))
+    p.add_argument("--plano", required=True, choices=sorted(planos))
     p.add_argument("--pasta", required=True, type=Path)
     p.add_argument("--quadros", type=int, default=2)
     p.add_argument("--primeiro", type=int, default=0)

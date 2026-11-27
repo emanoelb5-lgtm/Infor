@@ -160,7 +160,7 @@ def ffmpeg(args):
     subprocess.run(["ffmpeg","-hide_banner","-loglevel","error","-y",*args],check=True)
 
 
-def codificar(plano, pasta_frames, destino):
+def codificar(plano, pasta_frames, destino, *, fps_3d=FPS_3D, escrever_letreiros=letreiros):
     filtro = []
     app = plano["nome"] in APP
     if app:
@@ -169,7 +169,7 @@ def codificar(plano, pasta_frames, destino):
         entrada = ["-ss",str(corte),"-i",str(arquivo)]
         filtro.append(f"setpts=(PTS-STARTPTS)/{velocidade}")
     else:
-        entrada = ["-framerate",str(FPS_3D),"-i",str((pasta_frames/"%04d.jpg").resolve())]
+        entrada = ["-framerate",str(fps_3d),"-i",str((pasta_frames/"%04d.jpg").resolve())]
         filtro.append("hqdn3d=1.45:1.0:1.8:1.2")
     filtro.extend([
         f"fps={FPS}", "scale=1080:1920:flags=lanczos:out_color_matrix=bt709",
@@ -178,7 +178,7 @@ def codificar(plano, pasta_frames, destino):
     destino.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="infor-tipos-",dir="/tmp") as pasta:
         arquivo = Path(pasta)/"texto.ass"
-        if letreiros(plano,arquivo):
+        if escrever_letreiros(plano,arquivo):
             filtro.append(f"ass={arquivo}")
         ffmpeg([*entrada, "-an","-filter_threads","2","-vf",",".join(filtro),
             "-frames:v",str(plano["frames"]),"-c:v","libx264","-preset","veryfast","-crf","19",
