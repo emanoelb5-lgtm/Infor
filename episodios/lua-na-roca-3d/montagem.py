@@ -241,10 +241,14 @@ def conferencia(destino, n):
     alteracao = abs(n/FPS-float(resultado["format"]["duration"]))
     if (video["width"],video["height"],video["codec_name"],video["r_frame_rate"]) != (1080,1920,"h264","30/1"):
         raise RuntimeError("Dimensões ou codificação de vídeo incorretas.")
-    if int(video["nb_frames"]) != n or alteracao > 2/FPS or audio["codec_name"]!="aac":
+    video_s = float(video["duration"])
+    if (int(video["nb_frames"]) != n or alteracao > 2/FPS or abs(video_s - n/FPS) > 1/FPS
+            or audio["codec_name"] != "aac"):
         raise RuntimeError("Duração ou formato de áudio incorretos.")
-    subprocess.run(["ffmpeg","-v","error","-xerror","-threads","2","-i",str(destino),"-map","0:v",
-        "-map","0:a","-f","null","-"],check=True)
+    decode = subprocess.run(["ffmpeg","-v","error","-xerror","-threads","2","-i",str(destino),
+        "-map","0:v","-map","0:a","-f","null","-"],check=True,capture_output=True,text=True)
+    if decode.stderr.strip():
+        raise RuntimeError(decode.stderr.splitlines()[0])
     print(f"{n/FPS:.2f}s | 1080 × 1920 | {n} quadros | H264/AAC",flush=True)
 
 
