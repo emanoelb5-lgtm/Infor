@@ -51,7 +51,7 @@ jobs:
         with:
           path: ${{ runner.temp }}/infor-mpfb
           key: mpfb-d9648f3257a0b9712281d466245f30d656250154-elenco
-      - name: Remontar os planos renderizados
+      - name: Conferir a ordem e os tempos dos planos renderizados
         run: |
           bash episodios/agrofloresta/preparar-ffmpeg.sh
           python -m pip install numpy

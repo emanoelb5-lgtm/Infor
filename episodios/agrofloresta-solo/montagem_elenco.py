@@ -4,6 +4,7 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor
 from fractions import Fraction
 from hashlib import sha256
+from itertools import groupby
 import json
 from pathlib import Path
 import subprocess
@@ -116,27 +117,35 @@ def timestamps(lista):
     passo = 1 / (base * FPS_FINAL)
     if passo.denominator != 1:
         raise RuntimeError(f"A base {base} não admite quadros inteiros a {FPS_FINAL} fps.")
-    ordem = [round(Fraction(p["pts"],passo.numerator)) for p in dados["packets"]]
+    ordem = [int(p["pts"]) for p in dados["packets"]]
     return passo.numerator, ordem
 
 
 def unir_video(lista, saida):
     passo, ordem = timestamps(lista)
-    quantidade = sum(n for _,n,_ in QUADROS)
-    if len(ordem) != quantidade:
-        raise RuntimeError(f"O concatenador entregou {len(ordem)} de {quantidade} quadros.")
-    cursor, correcoes, ordem_exata = 0, [], []
-    for plano, quantidade, _ in QUADROS:
-        parte = ordem[cursor:cursor+quantidade]
-        inicio = min(parte)
-        if sorted(parte) != list(range(inicio, inicio+quantidade)):
-            raise RuntimeError(f"O plano {plano} contém lacunas na apresentação.")
-        desvio = cursor-inicio
-        if desvio:
-            correcoes.append(f"+({desvio})*between(N\\,{cursor}\\,{cursor+quantidade-1})")
-        ordem_exata.extend(i+desvio for i in parte)
+    total = sum(n for _,n,_ in QUADROS)
+    if len(ordem) != total:
+        raise RuntimeError(f"O concatenador entregou {len(ordem)} de {total} quadros.")
+    cursor, ordem_exata = 0, [0]*total
+    for _, quantidade, _ in QUADROS:
+        # A cadência aprovada define o tempo e a ordem nativa define a apresentação.
+        # Reordenar pelos PTS do plano retém a ordem dos B-frames sem herdar as lacunas do mux.
+        decodificacao = range(cursor,cursor+quantidade)
+        apresentacao = sorted(decodificacao,key=ordem.__getitem__)
+        for quadro, pacote in enumerate(apresentacao,cursor):
+            ordem_exata[pacote] = quadro
         cursor += quantidade
-    atraso = max(2, max(n-p for n,p in enumerate(ordem_exata)))
+    aproximados = [(p+passo//2)//passo for p in ordem]
+    diferencas = (exato-atual for exato,atual in zip(ordem_exata,aproximados,strict=True))
+    correcoes = []
+    cursor = 0
+    for delta, grupo in groupby(diferencas):
+        comprimento = sum(1 for _ in grupo)
+        if delta:
+            correcoes.append(f"+({delta})*between(N\\,{cursor}\\,{cursor+comprimento-1})")
+        cursor += comprimento
+    atraso = max(2,max(n-p for n,p in enumerate(ordem_exata)))
+    print(f"Relógio do MP4: {total} quadros, {len(correcoes)} ajustes de tempo.",flush=True)
     pts = f"(floor(PTS/{passo}+0.5){''.join(correcoes)})*{passo}"
     dts = f"(N-{atraso})*{passo}"
     ffmpeg(["-f","concat","-safe","1","-i",str(lista),"-map","0:v:0","-c:v","copy",
