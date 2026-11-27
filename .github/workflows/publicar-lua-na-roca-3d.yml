@@ -1,0 +1,123 @@
+name: Renderizar A Lua e o tempo da roça em 3D
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/publicar-lua-na-roca-3d.yml
+      - episodios/lua-na-roca-3d/**
+
+permissions:
+  contents: write
+
+concurrency:
+  group: lua-na-roca-3d
+  cancel-in-progress: false
+
+env:
+  EPISODIO: episodios/lua-na-roca-3d
+  TAG: lua-na-roca-3d
+  VIDEO: A_Lua_e_o_Tempo_da_Roca_Reel.mp4
+  OPENBLAS_NUM_THREADS: '1'
+
+jobs:
+  decupar:
+    if: github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      planos: ${{ steps.planos.outputs.planos }}
+      rascunho: ${{ steps.planos.outputs.rascunho }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Preparar a decupagem
+        id: planos
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+          python -m pip install numpy
+          TEMP_TAG="temporario-lua-3d-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          PLANOS="$(python "$EPISODIO/montagem.py" planos)"
+          gh release create "$TEMP_TAG" --repo "$GITHUB_REPOSITORY" --draft \
+            --target "$GITHUB_SHA" --title "Render em processamento" --notes "Arquivos desta execução."
+          printf 'planos=%s\nrascunho=%s\n' "$PLANOS" "$TEMP_TAG" >> "$GITHUB_OUTPUT"
+
+  renderizar:
+    needs: decupar
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        plano: ${{ fromJSON(needs.decupar.outputs.planos) }}
+    env:
+      PLANO: ${{ matrix.plano }}
+      TEMP_TAG: ${{ needs.decupar.outputs.rascunho }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Preparar Blender e FFmpeg
+        run: |
+          command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+          python -m pip install numpy
+          curl --fail --silent --show-error --location --retry 3 \
+            https://download.blender.org/release/Blender4.3/blender-4.3.2-linux-x64.tar.xz \
+            --output "$RUNNER_TEMP/blender.tar.xz"
+          tar -xf "$RUNNER_TEMP/blender.tar.xz" -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/blender-4.3.2-linux-x64/blender" --version
+      - name: Renderizar o plano
+        run: |
+          python "$EPISODIO/montagem.py" render "$PLANO" --threads 4 --amostras 13 --denoise \
+            --blender "$RUNNER_TEMP/blender-4.3.2-linux-x64/blender" \
+            > "$RUNNER_TEMP/plano.log" 2>&1 || { tail -n 100 "$RUNNER_TEMP/plano.log"; exit 1; }
+          tail -n 11 "$RUNNER_TEMP/plano.log"
+      - name: Guardar o plano no rascunho da montagem
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TEMP_TAG" "$EPISODIO/.build/clipes/$PLANO.mp4" --repo "$GITHUB_REPOSITORY" --clobber
+
+  montar:
+    needs: [decupar, renderizar]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      TEMP_TAG: ${{ needs.decupar.outputs.rascunho }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Montar com voz, trilha, legendas e capturas do AgroHere
+        run: |
+          command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+          python -m pip install numpy
+          gh release download "$TEMP_TAG" --repo "$GITHUB_REPOSITORY" --pattern '*.mp4' --dir "$RUNNER_TEMP/clipes"
+          python "$EPISODIO/montagem.py" montar --clipes "$RUNNER_TEMP/clipes"
+          sha256sum "$EPISODIO/dist/$VIDEO"
+      - name: Publicar a edição 3D
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$EPISODIO/dist/$VIDEO" --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "$TAG" "$EPISODIO/dist/$VIDEO" --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" --title 'A Lua e o tempo da roça • edição 3D' \
+              --notes-file "$EPISODIO/RELEASE.md"
+          fi
+      - name: Disponibilizar uma cópia versionada do MP4
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -B render/lua-na-roca-3d
+          git add -f "$EPISODIO/dist/$VIDEO"
+          git commit -m 'Guardar o MP4 verificado da edição 3D'
+          git push --force-with-lease origin HEAD:render/lua-na-roca-3d
+      - name: Remover os clipes temporários
+        run: gh release delete "$TEMP_TAG" --repo "$GITHUB_REPOSITORY" --yes
