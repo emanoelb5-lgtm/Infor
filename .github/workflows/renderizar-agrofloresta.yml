@@ -2,10 +2,6 @@ name: Renderizar Agrofloresta da semente à sombra
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/renderizar-agrofloresta.yml
 
 permissions:
   contents: write
@@ -46,7 +42,7 @@ jobs:
       - name: Fixar a duração dos planos pela locução
         id: lotes
         run: |
-          command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+          bash "$EPISODIO/preparar-ffmpeg.sh"
           python -m pip install numpy
           git fetch --no-tags --depth 1 origin "$VOZ_REF"
           mkdir -p "$RUNNER_TEMP/voz"
@@ -79,7 +75,7 @@ jobs:
           key: blender-4.3.2-linux-x64
       - name: Renderizar os quadros originais em 3D
         run: |
-          command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+          bash "$EPISODIO/preparar-ffmpeg.sh"
           python -m pip install numpy
           bash episodios/lua-na-roca-3d/preparar-blender.sh "$RUNNER_TEMP/infor-blender"
           git fetch --no-tags --depth 1 origin "$VOZ_REF"
@@ -104,7 +100,7 @@ jobs:
           python-version: '3.12'
       - name: Montar e conferir o vídeo completo
         run: |
-          command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+          bash "$EPISODIO/preparar-ffmpeg.sh"
           python -m pip install numpy
           git fetch --no-tags origin "$VOZ_REF"
           mkdir -p "$RUNNER_TEMP/voz"
@@ -115,32 +111,4 @@ jobs:
           sha256sum "$RUNNER_TEMP/edicao/$VIDEO"
       - name: Publicar o MP4 conferido
         run: |
-          final="$RUNNER_TEMP/edicao/$VIDEO"
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          if git fetch --no-tags origin "$COPIA"; then
-            git switch -c "$COPIA" FETCH_HEAD
-            git merge --no-edit --no-ff "$GITHUB_SHA"
-          else
-            git switch -c "$COPIA"
-          fi
-          mkdir -p "$EPISODIO/dist"
-          cp "$final" "$EPISODIO/dist/$VIDEO"
-          git add -f "$EPISODIO/dist/$VIDEO"
-          if ! git diff --cached --quiet; then
-            git commit -m 'Guardar o curta final sobre agrofloresta'
-          fi
-          git show "HEAD:$EPISODIO/dist/$VIDEO" | cmp -s - "$final"
-          git push origin "HEAD:$COPIA"
-          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$final" --repo "$GITHUB_REPOSITORY" --clobber
-          else
-            gh release create "$TAG" "$final" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-              --title 'Agrofloresta da semente à sombra' \
-              --notes 'Curta do Infor com Dona Luzia e Rafael, um corte animado da germinação do feijão e o Diário de Campo do AgroHere.'
-          fi
-          local_sha="$(sha256sum "$final" | cut -d ' ' -f 1)"
-          remoto="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" \
-            --jq ".assets[] | select(.name == \"$VIDEO\") | .digest")"
-          test "$remoto" = "sha256:$local_sha"
-          gh release delete "$RASCUNHO" --repo "$GITHUB_REPOSITORY" --yes
+          bash "$EPISODIO/publicar.sh" "$RUNNER_TEMP/edicao/$VIDEO"
