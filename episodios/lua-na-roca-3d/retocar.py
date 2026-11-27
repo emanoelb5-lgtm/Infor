@@ -51,7 +51,7 @@ def regularizar(base, destino, total):
     destino.parent.mkdir(parents=True,exist_ok=True)
     ffmpeg(["-threads","4","-i",str(base),"-map","0:v:0","-map","0:a:0","-map","0:s:0",
         "-map_metadata","0","-vf","settb=expr=1/30000,setpts=N*1000","-r",str(FPS),
-        "-fps_mode","passthrough","-c:v","libx264","-preset","veryfast","-crf","17",
+        "-fps_mode","cfr","-c:v","libx264","-preset","veryfast","-crf","17",
         "-threads","4","-c:a","copy","-c:s","copy","-pix_fmt","yuv420p",
         "-color_primaries","bt709","-color_trc","bt709","-colorspace","bt709",
         "-video_track_timescale","30000","-disposition:s:0","0","-movflags","+faststart",
