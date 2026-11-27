@@ -23,8 +23,8 @@ EXECUTORES=20
 QUADROS_POR_FATIA=22
 
 
-def linha_do_tempo(narracao):
-    roteiro=json.loads((EPISODIO/"roteiro.json").read_text(encoding="utf-8"))
+def linha_do_tempo(narracao, *, arquivo_roteiro=EPISODIO/"roteiro.json", planos_fluidos=GERMINACAO):
+    roteiro=json.loads(arquivo_roteiro.read_text(encoding="utf-8"))
     faixa=[]
     cenas=[]
     falas=[]
@@ -41,7 +41,7 @@ def linha_do_tempo(narracao):
             raise ValueError(f"Pausa insuficiente para a locução de {nome}.")
         faixa.extend((np.zeros(intro*TAXA//FPS,dtype=np.float32),audio,
                       np.zeros(pausa,dtype=np.float32)))
-        orig=30 if nome in GERMINACAO else 15
+        orig=30 if nome in planos_fluidos else 15
         cenas.append({"nome":nome,"inicio":cursor,"frames":quadros+intro,"fps_3d":orig,
                       "titulo":p["titulo"],"texto":p["texto"],"acao":p["acao"]})
         cursor+=quadros+intro
@@ -61,7 +61,8 @@ def lotes(planos):
             continue
         fps=p["fps_3d"]
         n=(p["frames"]*fps+FPS-1)//FPS
-        peso=.84 if nome in GERMINACAO else 1.24 if nome in ("abertura","manejo","estratos") else 1.0
+        peso=p.get("peso_render",.84 if nome in GERMINACAO else
+                   1.24 if nome in ("abertura","manejo","estratos") else 1.0)
         for i in range(0,n,QUADROS_POR_FATIA):
             fim=min(n,i+QUADROS_POR_FATIA)
             fatias.append((peso*(fim-i),nome,i,fim,n,p["frames"]/FPS,fps))
@@ -72,15 +73,15 @@ def lotes(planos):
     return grupos
 
 
-def renderizar(planos,indice,blender,destino):
+def renderizar(planos,indice,blender,destino, *, script=EPISODIO/"render_agrofloresta.py", amostras=12):
     with tempfile.TemporaryDirectory(prefix="agro-poses-") as temp, ZipFile(destino,"w") as z:
         base=Path(temp)
         for p,a,b,n,dt,fps in lotes(planos)[indice]:
             pasta=base/p
             subprocess.run([blender,"-b","-t","4","--factory-startup","--python-exit-code","1",
-                "--python",str(EPISODIO/"render_agrofloresta.py"),"--","--plano",p,"--pasta",str(pasta),
+                "--python",str(script),"--","--plano",p,"--pasta",str(pasta),
                 "--quadros",str(n),"--duracao",str(dt),"--fps",str(fps),
-                "--amostras","12","--threads","4","--primeiro",str(a),"--ultimo",str(b),
+                "--amostras",str(amostras),"--threads","4","--primeiro",str(a),"--ultimo",str(b),
                 "--denoise"],check=True)
             for i in range(a,b):
                 img=f"{i:04d}.jpg"
@@ -136,7 +137,8 @@ def mixar(voz,planos):
     return mix
 
 
-def exportar(planos,falas,voz,total,entrega,destino):
+def exportar(planos,falas,voz,total,entrega,destino, *, titulo=TITULO,
+             texto_dos_planos=letreiros, som=mixar):
     destino=destino.resolve()
     destino.parent.mkdir(parents=True,exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="agrofloresta-edicao-") as tmp:
@@ -154,12 +156,12 @@ def exportar(planos,falas,voz,total,entrega,destino):
         def codificar_plano(plano):
             nome=plano["nome"]
             codificar(plano,frames/nome,clipes/f"{nome}.mp4",fps_3d=plano["fps_3d"],
-                      escrever_letreiros=letreiros)
+                      escrever_letreiros=texto_dos_planos)
             print(f"Plano exportado: {nome}",flush=True)
         with ThreadPoolExecutor(max_workers=2) as pool:
             list(pool.map(codificar_plano,planos))
         wav,srt=p/"mix.wav",p/"fala.srt"
-        escrever_wav(wav,mixar(voz,planos))
+        escrever_wav(wav,som(voz,planos))
         legendas(falas,srt)
         lista=clipes/"cortes.txt"
         lista.write_text("".join(f"file {x['nome']}.mp4\n" for x in planos),encoding="utf-8")
@@ -167,7 +169,7 @@ def exportar(planos,falas,voz,total,entrega,destino):
         ffmpeg(["-f","concat","-safe","1","-i",str(lista),"-i",str(wav),"-i",str(srt),
               "-map","0:v","-map","1:a","-map","2:s","-c:v","copy",
               "-af",normalizar(wav),"-c:a","aac","-b:a","192k","-ar",str(TAXA),"-c:s","mov_text",
-              "-disposition:s:0","0","-metadata",f"title={TITULO}","-metadata:s:a:0","language=por",
+              "-disposition:s:0","0","-metadata",f"title={titulo}","-metadata:s:a:0","language=por",
               "-metadata:s:s:0","language=por","-movflags","+faststart",str(nome_temp)])
         conferencia(nome_temp,total)
         nome_temp.replace(destino)

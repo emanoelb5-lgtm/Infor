@@ -2,6 +2,8 @@
 set -euo pipefail
 
 final="$1"
+titulo="${2:-Agrofloresta da semente à sombra}"
+notas="${3:-Curta do Infor com Dona Luzia e Rafael, um corte animado da germinação do feijão e o Diário de Campo do AgroHere.}"
 git config user.name 'github-actions[bot]'
 git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 if git fetch --no-tags origin "$COPIA"; then
@@ -22,8 +24,7 @@ if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
   gh release upload "$TAG" "$final" --repo "$GITHUB_REPOSITORY" --clobber
 else
   gh release create "$TAG" "$final" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-    --title 'Agrofloresta da semente à sombra' \
-    --notes 'Curta do Infor com Dona Luzia e Rafael, um corte animado da germinação do feijão e o Diário de Campo do AgroHere.'
+    --title "$titulo" --notes "$notas"
 fi
 local_sha="$(sha256sum "$final" | cut -d ' ' -f 1)"
 remoto="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" \

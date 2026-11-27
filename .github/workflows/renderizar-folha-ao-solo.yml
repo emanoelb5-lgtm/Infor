@@ -1,0 +1,120 @@
+name: Renderizar Agrofloresta da folha ao solo
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/renderizar-folha-ao-solo.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: render-folha-ao-solo
+  cancel-in-progress: true
+
+env:
+  EPISODIO: episodios/agrofloresta-solo
+  VOZ_REF: refs/heads/voz/agrofloresta-solo
+  VIDEO: Agrofloresta_Da_Folha_ao_Solo_Reel.mp4
+  TAG: agrofloresta-da-folha-ao-solo
+  COPIA: render/agrofloresta-solo
+  RASCUNHO: folha-ao-solo-quadros-${{ github.run_id }}
+  GH_TOKEN: ${{ github.token }}
+  OPENBLAS_NUM_THREADS: '1'
+
+jobs:
+  preparar:
+    if: github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      lotes: ${{ steps.lotes.outputs.lotes }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/cache@v4
+        id: blender
+        with:
+          path: ${{ runner.temp }}/infor-blender
+          key: blender-4.3.2-linux-x64
+      - if: steps.blender.outputs.cache-hit != 'true'
+        run: bash episodios/lua-na-roca-3d/preparar-blender.sh "$RUNNER_TEMP/infor-blender"
+      - name: Fixar a duração dos planos pela locução
+        id: lotes
+        run: |
+          bash episodios/agrofloresta/preparar-ffmpeg.sh
+          python -m pip install numpy
+          git fetch --no-tags --depth 1 origin "$VOZ_REF"
+          mkdir -p "$RUNNER_TEMP/voz"
+          git archive FETCH_HEAD "$EPISODIO/assets/voz" | tar -x -C "$RUNNER_TEMP/voz"
+          lotes="$(python "$EPISODIO/montagem_solo.py" --voz "$RUNNER_TEMP/voz/$EPISODIO/assets/voz" lotes)"
+          if ! gh release view "$RASCUNHO" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$RASCUNHO" --draft --target "$GITHUB_SHA" --repo "$GITHUB_REPOSITORY" \
+              --title 'Quadros em renderização' --notes 'Quadros do curta sobre agrofloresta.'
+          fi
+          printf 'lotes=%s\n' "$lotes" >> "$GITHUB_OUTPUT"
+
+  renderizar:
+    needs: preparar
+    runs-on: ubuntu-24.04
+    timeout-minutes: 32
+    strategy:
+      fail-fast: false
+      matrix:
+        lote: ${{ fromJSON(needs.preparar.outputs.lotes) }}
+    env:
+      LOTE: ${{ matrix.lote }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/infor-blender
+          key: blender-4.3.2-linux-x64
+      - name: Renderizar os quadros originais em 3D
+        run: |
+          bash episodios/agrofloresta/preparar-ffmpeg.sh
+          python -m pip install numpy
+          bash episodios/lua-na-roca-3d/preparar-blender.sh "$RUNNER_TEMP/infor-blender"
+          git fetch --no-tags --depth 1 origin "$VOZ_REF"
+          mkdir -p "$RUNNER_TEMP/voz"
+          git archive FETCH_HEAD "$EPISODIO/assets/voz" | tar -x -C "$RUNNER_TEMP/voz"
+          python "$EPISODIO/montagem_solo.py" --voz "$RUNNER_TEMP/voz/$EPISODIO/assets/voz" render "$LOTE" \
+            --blender "$RUNNER_TEMP/infor-blender/blender-4.3.2-linux-x64/blender" \
+            --saida "$RUNNER_TEMP/lote-$LOTE.zip" > "$RUNNER_TEMP/render.log" 2>&1 \
+            || { tail -n 100 "$RUNNER_TEMP/render.log"; exit 1; }
+          gh release upload "$RASCUNHO" "$RUNNER_TEMP/lote-$LOTE.zip" --repo "$GITHUB_REPOSITORY" --clobber
+
+  montar:
+    needs: [preparar, renderizar]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Montar e conferir o vídeo completo
+        run: |
+          bash episodios/agrofloresta/preparar-ffmpeg.sh
+          python -m pip install numpy
+          git fetch --no-tags origin "$VOZ_REF"
+          mkdir -p "$RUNNER_TEMP/voz"
+          git archive FETCH_HEAD "$EPISODIO/assets/voz" | tar -x -C "$RUNNER_TEMP/voz"
+          gh release download "$RASCUNHO" --pattern '*.zip' --dir "$RUNNER_TEMP/quadros" --repo "$GITHUB_REPOSITORY"
+          python "$EPISODIO/montagem_solo.py" --voz "$RUNNER_TEMP/voz/$EPISODIO/assets/voz" montar \
+            --pacotes "$RUNNER_TEMP/quadros" --saida "$RUNNER_TEMP/edicao/$VIDEO"
+          sha256sum "$RUNNER_TEMP/edicao/$VIDEO"
+      - name: Publicar o MP4 conferido
+        run: |
+          bash episodios/agrofloresta/publicar.sh "$RUNNER_TEMP/edicao/$VIDEO" \
+            'Agrofloresta da folha ao solo' \
+            'Dona Luzia e Rafael acompanham o papel da serapilheira no solo e a germinação da andiroba. Curta vertical do Infor.'
