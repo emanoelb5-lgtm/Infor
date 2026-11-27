@@ -96,19 +96,27 @@ jobs:
           gh release download "$TAG" --pattern "$VIDEO" --dir "$RUNNER_TEMP/base" --repo "$GITHUB_REPOSITORY"
           gh release download "$TEMP_TAG" --pattern '*.zip' --dir "$RUNNER_TEMP/pacotes" --repo "$GITHUB_REPOSITORY"
           python "$EPISODIO/retocar.py" montar --base "$RUNNER_TEMP/base/$VIDEO" \
-            --pacotes "$RUNNER_TEMP/pacotes" --saida "$EPISODIO/dist/$VIDEO"
-          sha256sum "$EPISODIO/dist/$VIDEO"
+            --pacotes "$RUNNER_TEMP/pacotes" --saida "$RUNNER_TEMP/edicao/$VIDEO"
+          sha256sum "$RUNNER_TEMP/edicao/$VIDEO"
       - name: Publicar o arquivo conferido
         run: |
+          revisado="$RUNNER_TEMP/edicao/$VIDEO"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git fetch --no-tags origin render/lua-na-roca-3d
           git switch -c render/lua-na-roca-3d FETCH_HEAD
           git merge --no-edit --no-ff "$GITHUB_SHA"
+          mkdir -p "$EPISODIO/dist"
+          cp "$revisado" "$EPISODIO/dist/$VIDEO"
           git add -f "$EPISODIO/dist/$VIDEO"
           if ! git diff --cached --quiet; then
             git commit -m 'Guardar a edição 3D com letreiros revisados'
           fi
+          git show "HEAD:$EPISODIO/dist/$VIDEO" | cmp -s - "$revisado"
           git push origin HEAD:render/lua-na-roca-3d
-          gh release upload "$TAG" "$EPISODIO/dist/$VIDEO" --repo "$GITHUB_REPOSITORY" --clobber
+          gh release upload "$TAG" "$revisado" --repo "$GITHUB_REPOSITORY" --clobber
+          soma="$(sha256sum "$revisado" | cut -d ' ' -f 1)"
+          publicada="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" \
+            --jq ".assets[] | select(.name == \"$VIDEO\") | .digest")"
+          test "$publicada" = "sha256:$soma"
           gh release delete "$TEMP_TAG" --repo "$GITHUB_REPOSITORY" --yes
