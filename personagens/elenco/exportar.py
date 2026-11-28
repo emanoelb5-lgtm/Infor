@@ -15,7 +15,7 @@ from modelos import NOMES
 from movimento import Ator, Marcha, progressao
 
 
-def adicionar(sexo, centro, rumo, fabricar=Ator):
+def adicionar(sexo, centro, rumo, fabricar=Ator, coreografia=None):
     antigos = set(bpy.data.objects)
     ator = fabricar(sexo)
     colecao = bpy.data.collections.new(NOMES[sexo])
@@ -37,8 +37,11 @@ def adicionar(sexo, centro, rumo, fabricar=Ator):
         raise RuntimeError(f"Vértices sem peso: {sem_peso}")
 
     s = 1 if centro>0 else -1
-    trajeto = Marcha((centro+s*.12,.43,0),(centro,.02,0),.04,.42,4,s,.074)
-    lateral = Marcha((centro,.02,0),(centro+s*.32,-.01,0),.51,.80,2,s,.076)
+    if coreografia:
+        trajeto,lateral = coreografia(centro,rumo,s)
+    else:
+        trajeto = Marcha((centro+s*.12,.43,0),(centro,.02,0),.04,.42,4,s,.074)
+        lateral = Marcha((centro,.02,0),(centro+s*.32,-.01,0),.51,.80,2,s,.076)
     for f in range(1,193):
         u=(f-1)/191
         gesto=progressao(u,.76,.91)*(1-progressao(u,.96,1))
@@ -78,7 +81,7 @@ def verificar(atores, cena):
               f"{polígonos} faces avaliadas | sem vértices sem peso", flush=True)
 
 
-def main(saida, *, fabricar=Ator, denoise=True,
+def main(saida, *, fabricar=Ator, denoise=True, coreografia=None,
          fonte_arte="A base MPFB é CC0.", fonte_codigo="personagens/elenco"):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     cena = bpy.context.scene
@@ -97,8 +100,8 @@ def main(saida, *, fabricar=Ator, denoise=True,
     cam = camera()
     cam((.08,-5.70,1.72),(0,0,1.00),2.55)
     atores = (
-        adicionar("female",-.54,.126,fabricar),
-        adicionar("male",.58,-.126,fabricar),
+        adicionar("female",-.54,.126,fabricar,coreografia),
+        adicionar("male",.58,-.126,fabricar,coreografia),
     )
     for t,n in ((1,"Pose inicial"),(13,"Caminhada"),(81,"Chegada"),
                 (98,"Passo lateral"),(155,"Indicar"),(192,"Repouso")):

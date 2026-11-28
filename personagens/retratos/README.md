@@ -20,3 +20,12 @@ acompanha o osso da cabeça.
 
 A [edição da agrofloresta com os dois retratos](https://github.com/emanoelb5-lgtm/Infor/releases/tag/agrofloresta-da-folha-ao-solo-retratos)
 usa as mesmas malhas na abertura e no retorno à muda.
+
+## Caminhada
+
+O [elenco com a caminhada revisada](https://github.com/emanoelb5-lgtm/Infor/releases/download/agrofloresta-da-folha-ao-solo-caminhada/Elenco_Infor_Seu_Joao_e_Dona_Maria_Caminhada.blend)
+inclui a nova ação com os passos de Seu João e Dona Maria. A trajetória e as
+marcas de pisada são definidas em `caminhada.py`. A sola de cada sapato fornece
+os pontos de contato para o calcanhar e a ponta. O quadril transfere o peso para
+o pé de apoio e os braços acompanham as pernas opostas.
+O arquivo tem a demonstração de caminhada, passo lateral e indicação, a 24 fps.

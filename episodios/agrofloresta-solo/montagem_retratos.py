@@ -11,7 +11,7 @@ PLANOS = tuple((nome,quadros,30 if nome in ("copa","ciclo") else None) for nome,
 LOTES = 20
 
 
-def main():
+def main(*, fonte=FONTE, script=EPISODIO/"render_retratos.py"):
     p = argparse.ArgumentParser(description=__doc__)
     sub = p.add_subparsers(dest="acao",required=True)
     sub.add_parser("lotes")
@@ -28,9 +28,9 @@ def main():
         print(json.dumps(list(range(len(lotes(PLANOS, LOTES))))))
     elif a.acao == "renderizar":
         renderizar(a.blender,a.lote,a.saida,quadros=PLANOS,numero_lotes=LOTES,
-                   script=EPISODIO/"render_retratos.py")
+                   script=script)
     else:
-        editar(a.origem,a.pacotes,a.saida,quadros=PLANOS,numero_lotes=LOTES,fonte_sha=FONTE)
+        editar(a.origem,a.pacotes,a.saida,quadros=PLANOS,numero_lotes=LOTES,fonte_sha=fonte)
 
 
 if __name__=="__main__":
