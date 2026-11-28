@@ -24,11 +24,11 @@ LOTES = 20
 FPS_FINAL = FPS
 
 
-def lotes():
-    lotes = [[] for _ in range(LOTES)]
-    pesos = [0] * LOTES
+def lotes(quadros=QUADROS, numero_lotes=LOTES):
+    lotes = [[] for _ in range(numero_lotes)]
+    pesos = [0] * numero_lotes
     fatias = []
-    for plano, frames, fps in QUADROS:
+    for plano, frames, fps in quadros:
         if not fps:
             continue
         n = (frames*fps + FPS_FINAL-1)//FPS_FINAL
@@ -43,13 +43,14 @@ def lotes():
     return lotes
 
 
-def renderizar(blender, numero_lote, saida):
+def renderizar(blender, numero_lote, saida, *, quadros=QUADROS, numero_lotes=LOTES,
+              script=EPISODIO/"render_elenco.py"):
     with tempfile.TemporaryDirectory(prefix="infor-elenco-") as tmp, ZipFile(saida,"w") as z:
-        for plano, inicio, fim, n, duração, fps in lotes()[numero_lote]:
+        for plano, inicio, fim, n, duração, fps in lotes(quadros,numero_lotes)[numero_lote]:
             pasta=Path(tmp)/plano
             subprocess.run([
                 str(blender),"-b","-t","4","--factory-startup","--python-exit-code","1",
-                "--python",str(EPISODIO/"render_elenco.py"),"--","--plano",plano,
+                "--python",str(script),"--","--plano",plano,
                 "--pasta",str(pasta),"--quadros",str(n),"--duracao",str(duração),
                 "--fps",str(fps),"--amostras","11","--threads","4",
                 "--primeiro",str(inicio),"--ultimo",str(fim),"--denoise",
@@ -71,22 +72,22 @@ def detalhes(video):
     return json.loads(p)["streams"]
 
 
-def extrair(origem,pasta):
+def extrair(origem,pasta,quadros=QUADROS):
     total=0
     marcadores=[]
-    for _,n,_ in QUADROS[:-1]:
+    for _,n,_ in quadros[:-1]:
         total+=n
         marcadores.append(str(total))
     ffmpeg(["-i",str(origem),"-map","0:v:0","-c:v","copy","-f","segment",
             "-segment_frames",",".join(marcadores),"-reset_timestamps","1",str(pasta/"original-%d.mp4")])
-    for i,(_,n,_) in enumerate(QUADROS):
+    for i,(_,n,_) in enumerate(quadros):
         v=detalhes(pasta/f"original-{i}.mp4")[0]
         if int(v["nb_frames"])!=n:
             raise RuntimeError(f"O plano {i} mudou o número de quadros.")
     return marcadores
 
 
-def comparar(origem, final, pasta, originais):
+def comparar(origem, final, pasta, originais, quadros=QUADROS):
     if trilha_hash(origem,"0:a:0") != trilha_hash(final,"0:a:0"):
         raise RuntimeError("A trilha de áudio diverge da edição aprovada.")
     orig_srt = subprocess.check_output(["ffmpeg","-v","error","-i",str(origem),"-map","0:s:0","-f","srt","-"])
@@ -95,7 +96,7 @@ def comparar(origem, final, pasta, originais):
         raise RuntimeError("As legendas divergem da edição aprovada.")
     novo=pasta/"conferencia"
     novo.mkdir()
-    extrair(final,novo)
+    extrair(final,novo,quadros)
     for i in originais:
         a=pasta/f"original-{i}.mp4"
         b=novo/a.name
@@ -104,8 +105,8 @@ def comparar(origem, final, pasta, originais):
             "-f","hash","-hash","SHA256","-",
         ]).strip() for p in (a,b)]
         if vals[0]!=vals[1]:
-            raise RuntimeError(f"Um plano preservado foi alterado: {QUADROS[i][0]}.")
-    print("Locução, trilha, legenda e quatro planos preservados conferidos por conteúdo.",flush=True)
+            raise RuntimeError(f"Um plano preservado foi alterado: {quadros[i][0]}.")
+    print(f"Locução, trilha, legendas e {len(originais)} planos preservados conferidos por conteúdo.",flush=True)
 
 
 def timestamps(lista):
@@ -121,13 +122,13 @@ def timestamps(lista):
     return passo.numerator, ordem
 
 
-def unir_video(lista, saida):
+def unir_video(lista, saida, quadros=QUADROS):
     passo, ordem = timestamps(lista)
-    total = sum(n for _,n,_ in QUADROS)
+    total = sum(n for _,n,_ in quadros)
     if len(ordem) != total:
         raise RuntimeError(f"O concatenador entregou {len(ordem)} de {total} quadros.")
     cursor, ordem_exata = 0, [0]*total
-    for _, quantidade, _ in QUADROS:
+    for _, quantidade, _ in quadros:
         # A cadência aprovada define o tempo e a ordem nativa define a apresentação.
         # Reordenar pelos PTS do plano retém a ordem dos B-frames sem herdar as lacunas do mux.
         decodificacao = range(cursor,cursor+quantidade)
@@ -153,17 +154,17 @@ def unir_video(lista, saida):
             "-avoid_negative_ts","disabled","-use_editlist","1","-video_track_timescale","30000",str(saida)])
 
 
-def editar(origem, pacotes, destino):
+def editar(origem, pacotes, destino, *, quadros=QUADROS, numero_lotes=LOTES, fonte_sha=ORIGINAL):
     origem,destino=origem.resolve(),destino.resolve()
     with origem.open("rb") as arquivo:
         hash_aprovado=sha256(arquivo.read()).hexdigest()
-    if hash_aprovado!=ORIGINAL:
+    if hash_aprovado!=fonte_sha:
         raise ValueError("Informe o MP4 aprovado de Agrofloresta da folha ao solo.")
     destino.parent.mkdir(parents=True,exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="infor-montagem-elenco-") as tmp:
         pasta=Path(tmp)
-        extrair(origem,pasta)
-        for i,lote in enumerate(lotes()):
+        extrair(origem,pasta,quadros)
+        for i,lote in enumerate(lotes(quadros,numero_lotes)):
             with ZipFile(pacotes/f"lote-{i}.zip") as z:
                 for plano,inicio,fim,*_ in lote:
                     frames=pasta/plano
@@ -180,29 +181,29 @@ def editar(origem, pacotes, destino):
             print(f"{nome} | {n} quadros | {'elenco' if fps else 'edição aprovada'}",flush=True)
 
         with ThreadPoolExecutor(max_workers=2) as pool:
-            list(pool.map(preparar,enumerate(QUADROS)))
+            list(pool.map(preparar,enumerate(quadros)))
 
         lista=pasta/"montagem.txt"
         lista.write_text("".join(
             f"file {'elenco' if fps else 'original'}-{i}.mp4\nduration {n/FPS_FINAL:.8f}\n"
-            for i,(_,n,fps) in enumerate(QUADROS)
+            for i,(_,n,fps) in enumerate(quadros)
         ),encoding="utf-8")
         temporário=destino.with_name(f".{destino.name}.parte.mp4")
         só_video = pasta/"video-com-tempos-exatos.mp4"
-        unir_video(lista,só_video)
+        unir_video(lista,só_video,quadros)
         ffmpeg(["-copyts","-i",str(só_video),"-i",str(origem),
                 "-map","0:v:0","-map","1:a:0","-map","1:s:0","-c","copy","-map_metadata","1",
                 "-avoid_negative_ts","disabled","-use_editlist","1",
                 "-video_track_timescale","30000","-movflags","+faststart",str(temporário)])
         try:
-            conferencia(temporário, sum(n for _,n,_ in QUADROS))
+            conferencia(temporário, sum(n for _,n,_ in quadros))
         except (RuntimeError, subprocess.CalledProcessError):
             print([{
                 chave: faixa.get(chave)
                 for chave in ("codec_name","codec_type","nb_frames","start_time","duration","time_base","r_frame_rate")
             } for faixa in detalhes(temporário)],flush=True)
             raise
-        comparar(origem,temporário,pasta,[i for i,(_,_,fps) in enumerate(QUADROS) if fps is None])
+        comparar(origem,temporário,pasta,[i for i,(_,_,fps) in enumerate(quadros) if fps is None],quadros)
         temporário.replace(destino)
 
 

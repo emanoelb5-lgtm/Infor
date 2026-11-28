@@ -3,8 +3,8 @@ set -euo pipefail
 
 video="$1"
 elenco="$2"
-titulo='Agrofloresta da folha ao solo · Edição com o elenco Infor'
-notas='Curta vertical com novos modelos 3D do Seu João e da Dona Maria. Inclui o arquivo Blender com os dois esqueletos e uma ação de demonstração de caminhada, passo lateral e gesto.'
+titulo="${3:-Agrofloresta da folha ao solo · Edição com o elenco Infor}"
+notas="${4:-Curta vertical com novos modelos 3D do Seu João e da Dona Maria. Inclui o arquivo Blender com os dois esqueletos e uma ação de demonstração de caminhada, passo lateral e gesto.}"
 
 git config user.name 'github-actions[bot]'
 git config user.email '41898282+github-actions[bot]@users.noreply.github.com'

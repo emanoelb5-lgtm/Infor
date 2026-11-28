@@ -15,3 +15,8 @@ Blender com malhas ponderadas, armaduras e ações de caminhada, passo lateral e
 gesto. A edição de [Agrofloresta da folha ao solo com o elenco
 Infor](https://github.com/emanoelb5-lgtm/Infor/releases/tag/agrofloresta-da-folha-ao-solo-elenco)
 traz a primeira aplicação desse elenco.
+
+## Elenco reconstruído das referências
+
+[Seu João e Dona Maria](personagens/retratos) também estão disponíveis com o
+volume reconstruído a partir das imagens, texturas e esqueleto reutilizável.

@@ -58,8 +58,8 @@ class Marcha:
 class Ator:
     """Aplica cinemática à armadura ponderada e aos acessórios do personagem."""
 
-    def __init__(self, sexo, escala=1):
-        self.obj, self.pele = criar(sexo)
+    def __init__(self, sexo, escala=1, *, construir=criar):
+        self.obj, self.pele = construir(sexo)
         self.obj.scale = (escala,)*3
         self.escala = escala
         self.ossos = self.obj.pose.bones
@@ -124,7 +124,7 @@ class Ator:
         self.obj.rotation_euler = (0,0,giro)
         mover,gait = marcha.balanço(u)
         quadril = self.repouso["Hips"].translation.copy()
-        quadril.z += -.028 + .014*gait + .006*sin(t*2.05)
+        quadril.z += -self.obj.get("descida_quadril",.028) + .014*gait + .006*sin(t*2.05)
         quadril.x += .024*mover
         quadril.y -= .12*inclinacao
         self.posicionar("Hips",Quaternion((0,0,1),.09*mover),quadril)

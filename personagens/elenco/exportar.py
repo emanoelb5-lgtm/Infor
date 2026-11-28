@@ -15,9 +15,9 @@ from modelos import NOMES
 from movimento import Ator, Marcha, progressao
 
 
-def adicionar(sexo, centro, rumo):
+def adicionar(sexo, centro, rumo, fabricar=Ator):
     antigos = set(bpy.data.objects)
-    ator = Ator(sexo)
+    ator = fabricar(sexo)
     colecao = bpy.data.collections.new(NOMES[sexo])
     bpy.context.scene.collection.children.link(colecao)
     for o in set(bpy.data.objects) - antigos:
@@ -78,14 +78,15 @@ def verificar(atores, cena):
               f"{polígonos} faces avaliadas | sem vértices sem peso", flush=True)
 
 
-def main(saida):
+def main(saida, *, fabricar=Ator, denoise=True,
+         fonte_arte="A base MPFB é CC0.", fonte_codigo="personagens/elenco"):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     cena = bpy.context.scene
     cena.render.fps = 24
     cena.frame_end = 192
     cena.render.engine = "CYCLES"
     cena.cycles.samples = 48
-    cena.cycles.use_denoising = True
+    cena.cycles.use_denoising = denoise
     cena.render.resolution_x, cena.render.resolution_y = 1440, 1080
     cena.view_settings.view_transform = "AgX"
     cena.view_settings.look = "AgX - Medium High Contrast"
@@ -96,8 +97,8 @@ def main(saida):
     cam = camera()
     cam((.08,-5.70,1.72),(0,0,1.00),2.55)
     atores = (
-        adicionar("female",-.54,.126),
-        adicionar("male",.58,-.126),
+        adicionar("female",-.54,.126,fabricar),
+        adicionar("male",.58,-.126,fabricar),
     )
     for t,n in ((1,"Pose inicial"),(13,"Caminhada"),(81,"Chegada"),
                 (98,"Passo lateral"),(155,"Indicar"),(192,"Repouso")):
@@ -110,8 +111,8 @@ def main(saida):
         "A armadura aceita poses com ossos de raiz, tronco, membros, dedos e olhos.\n"
         "No Action Editor, selecione a ação marcada do personagem para ver a marcha,\n"
         "o passo lateral e o gesto. A ação tem 192 quadros a 24 fps.\n"
-        "As malhas e materiais estão contidos neste .blend. A base MPFB é CC0.\n"
-        "Fonte: github.com/emanoelb5-lgtm/Infor/tree/main/personagens/elenco\n"
+        f"As malhas e materiais estão contidos neste .blend. {fonte_arte}\n"
+        f"Fonte: github.com/emanoelb5-lgtm/Infor/tree/main/{fonte_codigo}\n"
     )
     verificar(atores,cena)
     cena.frame_set(79)

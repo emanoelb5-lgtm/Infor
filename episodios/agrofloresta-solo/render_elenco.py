@@ -18,9 +18,9 @@ from personagens import Braco, Mao
 from render import argumentos, renderizar
 
 
-def elenco(nivel, retorno):
-    maria = Ator("female", 1.235)
-    joao = Ator("male", 1.220)
+def elenco(nivel, retorno, fabricar=Ator):
+    maria = fabricar("female", 1.235)
+    joao = fabricar("male", 1.220)
     if retorno:
         m = Marcha((-.53,1.19,0),(-.66,.67,0),.04,.39,3,1,.075)
         j = Marcha((.79,1.24,0),(.61,.70,0),.13,.52,3,-1,.076)
